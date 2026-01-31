@@ -48,13 +48,13 @@ struct WeightChartView: View {
         VStack(alignment: .leading, spacing: 8) {
             if entries.isEmpty {
                 Text("No data to display")
-                    .foregroundStyle(.secondary)
+                    .secondaryText()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if entries.count == 1 {
                 VStack(spacing: 8) {
                     Text("Add more weight entries to see the trend")
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .secondaryText()
                     
                     HStack {
                         Spacer()
@@ -62,9 +62,10 @@ struct WeightChartView: View {
                             Text(String(format: "%.1f", chartData[0].weight))
                                 .font(.title)
                                 .fontWeight(.bold)
+                                .foregroundStyle(Color.accentActive)
                             Text(unit.symbol)
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .tertiaryText()
                         }
                         Spacer()
                     }
@@ -76,14 +77,14 @@ struct WeightChartView: View {
                         x: .value("Date", dataPoint.date),
                         y: .value("Weight", dataPoint.weight)
                     )
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(Color.accentPrimary)
                     .interpolationMethod(.catmullRom)
                     
                     PointMark(
                         x: .value("Date", dataPoint.date),
                         y: .value("Weight", dataPoint.weight)
                     )
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(Color.accentActive)
                     .symbolSize(60)
                     
                     AreaMark(
@@ -92,7 +93,7 @@ struct WeightChartView: View {
                     )
                     .foregroundStyle(
                         LinearGradient(
-                            colors: [.blue.opacity(0.3), .blue.opacity(0.05)],
+                            colors: [Color.accentPrimary.opacity(0.3), Color.accentMuted.opacity(0.1)],
                             startPoint: .top,
                             endPoint: .bottom
                         )
@@ -105,15 +106,25 @@ struct WeightChartView: View {
                         AxisValueLabel {
                             if let weight = value.as(Double.self) {
                                 Text(String(format: "%.1f", weight))
+                                    .font(.caption)
+                                    .secondaryText()
                             }
                         }
                         AxisGridLine()
+                            .foregroundStyle(Color.borderSubtle)
                     }
                 }
                 .chartXAxis {
                     AxisMarks { value in
-                        AxisValueLabel(format: .dateTime.month(.abbreviated).day())
+                        AxisValueLabel {
+                            if let date = value.as(Date.self) {
+                                Text(date, format: .dateTime.month(.abbreviated).day())
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                         AxisGridLine()
+                            .foregroundStyle(Color.borderSubtle)
                     }
                 }
                 
@@ -121,7 +132,7 @@ struct WeightChartView: View {
                     Spacer()
                     Label(unit.symbol, systemImage: "chart.line.uptrend.xyaxis")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .tertiaryText()
                 }
             }
         }
@@ -145,4 +156,6 @@ struct ChartDataPoint: Identifiable {
     return WeightChartView(entries: sampleEntries, unit: .pounds)
         .padding()
         .frame(height: 250)
+        .background(Color.bgTertiary)
 }
+

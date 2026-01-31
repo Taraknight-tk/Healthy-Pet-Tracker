@@ -15,47 +15,27 @@ struct ContentView: View {
         NavigationStack {
             Group {
                 if pets.isEmpty {
-                    VStack(spacing: 20) {
-                        Image(systemName: "pawprint.fill")
-                            .font(.system(size: 60))
-                            .foregroundStyle(.secondary)
-                        Text("No Pets Yet")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                        Text("Add your first pet to start tracking their weight")
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                        
-                        Button(action: { showingAddPet = true }) {
-                            Label("Add Pet", systemImage: "plus.circle.fill")
-                                .font(.headline)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .padding(.top)
-                    }
-                    .padding()
+                    emptyStateView
                 } else {
-                    List {
-                        ForEach(pets) { pet in
-                            NavigationLink(destination: PetDetailView(pet: pet)) {
-                                PetRowView(pet: pet)
-                            }
-                        }
-                        .onDelete(perform: deletePets)
-                    }
+                    petListView
                 }
             }
             .navigationTitle("Pet Weight Tracker")
+            .toolbarBackground(Color.bgSecondary, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .background(Color.bgPrimary)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: { showingAddPet = true }) {
                         Label("Add Pet", systemImage: "plus")
                     }
+                    .tint(.accentPrimary)
                 }
                 
                 if !pets.isEmpty {
                     ToolbarItem(placement: .topBarLeading) {
                         EditButton()
+                            .tint(.accentPrimary)
                     }
                 }
             }
@@ -63,6 +43,47 @@ struct ContentView: View {
                 AddPetView()
             }
         }
+        .tint(.accentPrimary)
+    }
+    
+    private var emptyStateView: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "pawprint.fill")
+                .font(.system(size: 60))
+                .foregroundStyle(Color.accentMuted)
+            Text("No Pets Yet")
+                .font(.title2)
+                .fontWeight(.semibold)
+                .primaryText()
+            Text("Add your first pet to start tracking their weight")
+                .secondaryText()
+                .multilineTextAlignment(.center)
+            
+            Button(action: { showingAddPet = true }) {
+                Label("Add Pet", systemImage: "plus.circle.fill")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.accentPrimary)
+            .padding(.top)
+        }
+        .padding()
+    }
+    
+    private var petListView: some View {
+        List {
+            ForEach(pets) { pet in
+                NavigationLink(destination: PetDetailView(pet: pet)) {
+                    PetRowView(pet: pet)
+                }
+                .listRowBackground(Color.bgTertiary)
+            }
+            .onDelete(perform: deletePets)
+            .listRowSeparatorTint(Color.borderSubtle)
+        }
+        .scrollContentBackground(.hidden)
+        .background(Color.bgPrimary)
     }
     
     private func deletePets(offsets: IndexSet) {
@@ -82,12 +103,13 @@ struct PetRowView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(pet.name)
                     .font(.headline)
+                    .primaryText()
                 Text(pet.species)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .secondaryText()
                 Text(pet.ageString)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .tertiaryText()
             }
             
             Spacer()
@@ -97,14 +119,15 @@ struct PetRowView: View {
                     Text(latestWeight.displayWeight)
                         .font(.title3)
                         .fontWeight(.semibold)
+                        .foregroundStyle(Color.accentActive)
                     Text(latestWeight.date.formatted(date: .abbreviated, time: .omitted))
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .tertiaryText()
                 }
             } else {
                 Text("No entries")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .tertiaryText()
             }
         }
         .padding(.vertical, 4)

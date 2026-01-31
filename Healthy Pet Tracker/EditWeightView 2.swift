@@ -30,13 +30,15 @@ struct EditWeightView: View {
     
     var body: some View {
         NavigationStack {
-            Form {
+            ThemedForm {
                 Section("Weight Entry") {
                     DatePicker("Date", selection: $date, displayedComponents: .date)
+                        .primaryText()
                     
                     HStack {
                         TextField("Weight", text: $weight)
                             .keyboardType(.decimalPad)
+                            .primaryText()
                         
                         Picker("Unit", selection: $selectedUnit) {
                             ForEach(WeightUnit.allCases, id: \.self) { unit in
@@ -47,29 +49,37 @@ struct EditWeightView: View {
                         .frame(width: 120)
                     }
                 }
+                .themedSection()
                 
                 Section("Notes") {
                     TextField("Add notes about this weight entry", text: $notes, axis: .vertical)
                         .lineLimit(3...6)
+                        .primaryText()
                 }
+                .themedSection()
                 
                 Section {
                     Button(role: .destructive, action: { showingDeleteAlert = true }) {
                         HStack {
                             Spacer()
                             Label("Delete Entry", systemImage: "trash")
+                                .foregroundStyle(.red)
                             Spacer()
                         }
                     }
                 }
+                .themedSection()
             }
             .navigationTitle("Edit Weight")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Color.bgSecondary, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
                         dismiss()
                     }
+                    .tint(.textSecondary)
                 }
                 
                 ToolbarItem(placement: .confirmationAction) {
@@ -77,6 +87,7 @@ struct EditWeightView: View {
                         saveChanges()
                     }
                     .disabled(!isValid)
+                    .tint(.accentPrimary)
                 }
             }
             .alert("Delete Entry", isPresented: $showingDeleteAlert) {

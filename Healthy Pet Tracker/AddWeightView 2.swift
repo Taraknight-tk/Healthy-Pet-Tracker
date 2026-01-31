@@ -26,13 +26,15 @@ struct AddWeightView: View {
     
     var body: some View {
         NavigationStack {
-            Form {
+            ThemedForm {
                 Section("Weight Entry") {
                     DatePicker("Date", selection: $date, displayedComponents: .date)
+                        .primaryText()
                     
                     HStack {
                         TextField("Weight", text: $weight)
                             .keyboardType(.decimalPad)
+                            .primaryText()
                         
                         Picker("Unit", selection: $selectedUnit) {
                             ForEach(WeightUnit.allCases, id: \.self) { unit in
@@ -43,11 +45,14 @@ struct AddWeightView: View {
                         .frame(width: 120)
                     }
                 }
+                .themedSection()
                 
                 Section("Notes (Optional)") {
                     TextField("Add notes about this weight entry", text: $notes, axis: .vertical)
                         .lineLimit(3...6)
+                        .primaryText()
                 }
+                .themedSection()
                 
                 if let previous = pet.latestWeight, date > previous.date {
                     Section {
@@ -57,15 +62,19 @@ struct AddWeightView: View {
                             previousEntry: previous
                         )
                     }
+                    .themedSection()
                 }
             }
             .navigationTitle("Add Weight")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Color.bgSecondary, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
                         dismiss()
                     }
+                    .tint(.textSecondary)
                 }
                 
                 ToolbarItem(placement: .confirmationAction) {
@@ -73,6 +82,7 @@ struct AddWeightView: View {
                         saveWeight()
                     }
                     .disabled(!isValid)
+                    .tint(.accentPrimary)
                 }
             }
             .alert("Error", isPresented: $showingError) {
@@ -144,23 +154,25 @@ struct WeightComparisonView: View {
     var body: some View {
         HStack {
             Image(systemName: difference > 0 ? "arrow.up.circle.fill" : difference < 0 ? "arrow.down.circle.fill" : "equal.circle.fill")
-                .foregroundStyle(difference > 0 ? .orange : difference < 0 ? .green : .blue)
+                .foregroundStyle(difference > 0 ? Color.accentMuted : difference < 0 ? Color.accentActive : Color.accentPrimary)
                 .font(.title2)
             
             VStack(alignment: .leading, spacing: 4) {
                 Text("Change from last entry")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .tertiaryText()
                 
                 if difference == 0 {
                     Text("No change")
                         .font(.headline)
+                        .primaryText()
                 } else {
                     Text("\(difference > 0 ? "+" : "")\(displayDifference)")
                         .font(.headline)
+                        .primaryText()
                     Text("\(String(format: "%.1f", abs(percentageChange)))% \(difference > 0 ? "increase" : "decrease")")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .tertiaryText()
                 }
             }
             

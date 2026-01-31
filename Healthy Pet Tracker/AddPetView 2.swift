@@ -22,52 +22,63 @@ struct AddPetView: View {
     
     var body: some View {
         NavigationStack {
-            Form {
+            ThemedForm {
                 Section("Pet Information") {
                     TextField("Name", text: $name)
+                        .primaryText()
                     
                     DatePicker("Birthday", selection: $birthday, displayedComponents: .date)
+                        .primaryText()
                     
                     Picker("Species", selection: $species) {
-                        Text("Select Species").tag("")
+                        Text("Select Species").tag("").secondaryText()
                         ForEach(commonSpecies, id: \.self) { species in
-                            Text(species).tag(species)
+                            Text(species).tag(species).primaryText()
                         }
                     }
+                    .primaryText()
                     
                     if species == "Other" {
                         TextField("Specify Species", text: $species)
+                            .primaryText()
                     }
                 }
+                .themedSection()
                 
                 Section("Initial Weight") {
                     HStack {
                         TextField("Weight", text: $initialWeight)
                             .keyboardType(.decimalPad)
+                            .primaryText()
                         
                         Picker("Unit", selection: $selectedUnit) {
                             ForEach(WeightUnit.allCases, id: \.self) { unit in
-                                Text(unit.symbol).tag(unit)
+                                Text(unit.symbol).tag(unit).primaryText()
                             }
                         }
                         .pickerStyle(.segmented)
                         .frame(width: 120)
                     }
                 }
+                .themedSection()
                 
                 Section {
                     Text("You can change the preferred unit for this pet later in their detail view.")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .tertiaryText()
                 }
+                .themedSection()
             }
             .navigationTitle("Add New Pet")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Color.bgSecondary, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
                         dismiss()
                     }
+                    .tint(.textSecondary)
                 }
                 
                 ToolbarItem(placement: .confirmationAction) {
@@ -75,6 +86,7 @@ struct AddPetView: View {
                         savePet()
                     }
                     .disabled(!isValid)
+                    .tint(.accentPrimary)
                 }
             }
             .alert("Error", isPresented: $showingError) {
