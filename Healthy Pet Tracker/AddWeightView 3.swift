@@ -68,7 +68,10 @@ struct AddWeightView: View {
             .navigationTitle("Add Weight")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(Color.bgSecondary, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbarColorScheme(.light, for: .navigationBar)
+            .onAppear {
+                configureNavigationBarAppearance()
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
@@ -117,6 +120,24 @@ struct AddWeightView: View {
         modelContext.insert(newEntry)
         
         dismiss()
+    }
+    
+    private func configureNavigationBarAppearance() {
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = UIColor(Color.bgSecondary)
+        
+        // Set title text color to dark brown
+        appearance.largeTitleTextAttributes = [
+            .foregroundColor: UIColor(Color.textPrimary)
+        ]
+        appearance.titleTextAttributes = [
+            .foregroundColor: UIColor(Color.textPrimary)
+        ]
+        
+        UINavigationBar.appearance().standardAppearance = appearance
+        UINavigationBar.appearance().scrollEdgeAppearance = appearance
+        UINavigationBar.appearance().compactAppearance = appearance
     }
 }
 

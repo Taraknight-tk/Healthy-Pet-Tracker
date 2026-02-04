@@ -22,8 +22,11 @@ struct ContentView: View {
             }
             .navigationTitle("Pet Weight Tracker")
             .toolbarBackground(Color.bgSecondary, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbarColorScheme(.light, for: .navigationBar)
             .background(Color.bgPrimary)
+            .onAppear {
+                configureNavigationBarAppearance()
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: { showingAddPet = true }) {
@@ -92,6 +95,24 @@ struct ContentView: View {
                 modelContext.delete(pets[index])
             }
         }
+    }
+    
+    private func configureNavigationBarAppearance() {
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = UIColor(Color.bgSecondary)
+        
+        // Set title text color to dark brown
+        appearance.largeTitleTextAttributes = [
+            .foregroundColor: UIColor(Color.textPrimary)
+        ]
+        appearance.titleTextAttributes = [
+            .foregroundColor: UIColor(Color.textPrimary)
+        ]
+        
+        UINavigationBar.appearance().standardAppearance = appearance
+        UINavigationBar.appearance().scrollEdgeAppearance = appearance
+        UINavigationBar.appearance().compactAppearance = appearance
     }
 }
 
