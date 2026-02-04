@@ -73,6 +73,10 @@ final class WeightEntry {
             return weight * 0.453592
         case .kilograms:
             return weight
+        case .ounces:
+            return weight / 35.274
+        case .grams:
+            return weight / 1000
         }
     }
 }
@@ -80,6 +84,8 @@ final class WeightEntry {
 enum WeightUnit: String, Codable, CaseIterable {
     case pounds = "lbs"
     case kilograms = "kg"
+    case ounces = "oz"
+    case grams = "g"
     
     var symbol: String {
         self.rawValue
@@ -89,6 +95,8 @@ enum WeightUnit: String, Codable, CaseIterable {
         switch self {
         case .pounds: return "Pounds"
         case .kilograms: return "Kilograms"
+        case .ounces: return "Ounces"
+        case .grams: return "Grams"
         }
     }
 }

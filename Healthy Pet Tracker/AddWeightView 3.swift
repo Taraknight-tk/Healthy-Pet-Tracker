@@ -167,6 +167,10 @@ struct WeightComparisonView: View {
             converted = absValue / 0.453592 // Convert kg to lbs
         case .kilograms:
             converted = absValue
+        case .ounces:
+            converted = absValue / 0.0283495
+        case .grams:
+            converted = absValue / 1000
         }
         
         return String(format: "%.1f %@", converted, currentUnit.symbol)
@@ -208,7 +212,11 @@ struct WeightComparisonView: View {
         case .kilograms:
             return weight
         case .pounds:
-            return weight * 0.453592
+            return weight * 0.45359237
+        case .ounces:
+            return weight * 0.028349523125
+        case .grams:
+            return weight * 0.001
         }
     }
 }
