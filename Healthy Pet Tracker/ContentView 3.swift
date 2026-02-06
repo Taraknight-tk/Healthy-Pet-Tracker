@@ -10,6 +10,8 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Pet.name) private var pets: [Pet]
     @State private var showingAddPet = false
+    @State private var renamingPet: Pet? = nil
+    @State private var draftName: String = ""
     
     var body: some View {
         NavigationStack {
@@ -81,9 +83,35 @@ struct ContentView: View {
                     PetRowView(pet: pet)
                 }
                 .listRowBackground(Color.bgTertiary)
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button {
+                        draftName = pet.name
+                        renamingPet = pet
+                    } label: {
+                        Label("Rename", systemImage: "pencil")
+                    }
+                    .tint(.accentPrimary)
+                }
             }
             .onDelete(perform: deletePets)
             .listRowSeparatorTint(Color.borderSubtle)
+        }
+        .alert("Rename Pet", isPresented: Binding(
+            get: { renamingPet != nil },
+            set: { if !$0 { renamingPet = nil } }
+        )) {
+            TextField("Pet name", text: $draftName)
+            Button("Cancel", role: .cancel) { renamingPet = nil }
+            Button("Save") {
+                guard let petToRename = renamingPet else { return }
+                let newName = draftName.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !newName.isEmpty else { return }
+                petToRename.name = newName
+                try? modelContext.save()
+                renamingPet = nil
+            }
+        } message: {
+            Text("Enter a new name for your pet.")
         }
         .scrollContentBackground(.hidden)
         .background(Color.bgPrimary)
