@@ -106,6 +106,7 @@ struct AddWeightView: View {
         guard isValid, let weightValue = Double(weight) else {
             errorMessage = "Please enter a valid weight."
             showingError = true
+            HapticManager.shared.notification(.error)
             return
         }
         
@@ -119,6 +120,7 @@ struct AddWeightView: View {
         
         modelContext.insert(newEntry)
         
+        HapticManager.shared.notification(.success)
         dismiss()
     }
     

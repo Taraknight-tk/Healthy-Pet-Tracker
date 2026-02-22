@@ -12,6 +12,8 @@ struct PetDetailView: View {
     @Bindable var pet: Pet
     @State private var showingAddWeight = false
     @State private var selectedEntry: WeightEntry?
+    @State private var showingShareSheet = false
+    @State private var csvData: String = ""
     
     var body: some View {
         List {
@@ -22,6 +24,18 @@ struct PetDetailView: View {
             .listRowBackground(Color.clear)
             
             if !pet.sortedWeightEntries.isEmpty {
+                Section {
+                    WeightGoalCard(pet: pet)
+                }
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+                
+                Section {
+                    WeightStatsCard(pet: pet)
+                }
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+                
                 Section("Weight Chart") {
                     WeightChartView(entries: pet.sortedWeightEntries, unit: pet.preferredUnit)
                         .frame(height: 250)
@@ -60,8 +74,21 @@ struct PetDetailView: View {
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button(action: { showingAddWeight = true }) {
-                    Label("Add Weight", systemImage: "plus")
+                Menu {
+                    Button(action: { showingAddWeight = true }) {
+                        Label("Add Weight", systemImage: "plus")
+                    }
+                    
+                    if !pet.sortedWeightEntries.isEmpty {
+                        Button(action: {
+                            csvData = DataExporter.exportToCSV(pet: pet)
+                            showingShareSheet = true
+                        }) {
+                            Label("Export Data", systemImage: "square.and.arrow.up")
+                        }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
                 }
                 .tint(.accentPrimary)
             }
@@ -71,6 +98,11 @@ struct PetDetailView: View {
         }
         .sheet(item: $selectedEntry) { entry in
             EditWeightView(entry: entry)
+        }
+        .sheet(isPresented: $showingShareSheet) {
+            if let data = csvData.data(using: .utf8) {
+                ShareSheet(items: [data], fileName: "\(pet.name)_weight_data.csv")
+            }
         }
     }
     

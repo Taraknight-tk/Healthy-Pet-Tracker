@@ -11,6 +11,7 @@ struct WeightChartView: View {
     let unit: WeightUnit
     
     @State private var selectedRange: DateRange = .all
+    @State private var selectedDate: Date?
     
     enum DateRange: String, CaseIterable, Identifiable {
         case all
@@ -92,9 +93,8 @@ struct WeightChartView: View {
         return lower...upper
     }
     
-    // Adaptive x-axis stride based on range and data density
-    private var xAxisStride: AxisMarks.Values {
-        // Determine span in days and point count
+    // Get the appropriate axis stride based on selected range and data
+    private var xAxisStride: Calendar.Component {
         let dates = chartData.map { $0.date }
         let minDate = dates.min() ?? Date()
         let maxDate = dates.max() ?? Date()
@@ -103,33 +103,26 @@ struct WeightChartView: View {
         
         switch selectedRange {
         case .oneMonth:
-            // If many points or long span within a month, use ~every 3 days; otherwise weekly
-            if pointCount > 15 || spanDays > 21 {
-                return .stride(by: .day, count: 3)
-            } else {
-                return .stride(by: .weekOfYear)
-            }
+            return (pointCount > 15 || spanDays > 21) ? .day : .weekOfYear
         case .threeMonths:
-            // Use weekly if dense, otherwise biweekly
-            if pointCount > 20 {
-                return .stride(by: .weekOfYear)
-            } else {
-                return .stride(by: .weekOfYear, count: 2)
-            }
+            return pointCount > 20 ? .weekOfYear : .weekOfYear
+        case .sixMonths, .oneYear, .all:
+            return .month
+        }
+    }
+    
+    private var xAxisCount: Int {
+        let pointCount = chartData.count
+        
+        switch selectedRange {
+        case .oneMonth:
+            return pointCount > 15 ? 3 : 1
+        case .threeMonths:
+            return pointCount > 20 ? 1 : 2
         case .sixMonths:
-            // Biweekly or monthly if sparse
-            if pointCount > 25 {
-                return .stride(by: .weekOfYear, count: 2)
-            } else {
-                return .stride(by: .month)
-            }
+            return pointCount > 25 ? 1 : 1
         case .oneYear, .all:
-            // Monthly by default; if extremely sparse, show every 2 months
-            if pointCount < 6 {
-                return .stride(by: .month, count: 2)
-            } else {
-                return .stride(by: .month)
-            }
+            return pointCount < 6 ? 2 : 1
         }
     }
     
@@ -169,98 +162,128 @@ struct WeightChartView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                Chart(chartData) { dataPoint in
-                    LineMark(
-                        x: .value("Date", dataPoint.date),
-                        y: .value("Weight", dataPoint.weight)
-                    )
-                    .foregroundStyle(Color.accentPrimary)
-                    .interpolationMethod(.catmullRom)
-                    
-                    PointMark(
-                        x: .value("Date", dataPoint.date),
-                        y: .value("Weight", dataPoint.weight)
-                    )
-                    .foregroundStyle(Color.accentActive)
-                    .symbolSize(60)
-                    
-                    AreaMark(
-                        x: .value("Date", dataPoint.date),
-                        y: .value("Weight", dataPoint.weight)
-                    )
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [Color.accentPrimary.opacity(0.3), Color.accentMuted.opacity(0.1)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .interpolationMethod(.catmullRom)
-                }
-                .chartYScale(domain: weightRange)
-                .chartXScale(domain: (chartData.map { $0.date }.min() ?? Date())...(chartData.map { $0.date }.max() ?? Date()))
-                .chartYAxis {
-                    AxisMarks(position: .leading) { value in
-                        AxisValueLabel {
-                            if let weight = value.as(Double.self) {
-                                Text(String(format: "%.1f", weight))
+                VStack(spacing: 8) {
+                    if let selectedDate = selectedDate,
+                       let selectedPoint = chartData.first(where: { Calendar.current.isDate($0.date, inSameDayAs: selectedDate) }) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(selectedPoint.date, format: .dateTime.month().day().year())
                                     .font(.caption)
-                                    .secondaryText()
+                                    .tertiaryText()
+                                Text(String(format: "%.1f %@", selectedPoint.weight, unit.symbol))
+                                    .font(.headline)
+                                    .primaryText()
+                            }
+                            
+                            Spacer()
+                            
+                            Button(action: { self.selectedDate = nil }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundStyle(.secondary)
                             }
                         }
-                        AxisGridLine()
-                            .foregroundStyle(Color.borderSubtle)
+                        .padding(.horizontal)
+                        .padding(.vertical, 8)
+                        .background(Color.bgSecondary)
+                        .cornerRadius(8)
                     }
-                }
-                .chartXAxis {
-                    AxisMarks(values: xAxisStride) { value in
-                        AxisValueLabel {
-                            if let date = value.as(Date.self) {
-                                switch selectedRange {
-                                case .oneYear, .all:
-                                    Text(date, format: .dateTime.month(.abbreviated).year())
+                    
+                    Chart(chartData) { dataPoint in
+                        LineMark(
+                            x: .value("Date", dataPoint.date),
+                            y: .value("Weight", dataPoint.weight)
+                        )
+                        .foregroundStyle(Color.accentPrimary)
+                        .interpolationMethod(.catmullRom)
+                        
+                        PointMark(
+                            x: .value("Date", dataPoint.date),
+                            y: .value("Weight", dataPoint.weight)
+                        )
+                        .foregroundStyle(Color.accentActive)
+                        .symbolSize(60)
+                        
+                        AreaMark(
+                            x: .value("Date", dataPoint.date),
+                            y: .value("Weight", dataPoint.weight)
+                        )
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [Color.accentPrimary.opacity(0.3), Color.accentMuted.opacity(0.1)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .interpolationMethod(.catmullRom)
+                    }
+                    .chartYScale(domain: weightRange)
+                    .chartXScale(domain: (chartData.map { $0.date }.min() ?? Date())...(chartData.map { $0.date }.max() ?? Date()))
+                    .chartXSelection(value: $selectedDate)
+                    .chartYAxis {
+                        AxisMarks(position: .leading) { value in
+                            AxisValueLabel {
+                                if let weight = value.as(Double.self) {
+                                    Text(String(format: "%.1f", weight))
                                         .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                case .sixMonths, .threeMonths, .oneMonth:
-                                    Text(date, format: .dateTime.month(.abbreviated).day())
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                        .secondaryText()
                                 }
                             }
+                            AxisGridLine()
+                                .foregroundStyle(Color.borderSubtle)
                         }
-                        AxisGridLine()
-                            .foregroundStyle(Color.borderSubtle)
                     }
-                }
-                
-                HStack {
-                    Spacer()
-                    Label(unit.symbol, systemImage: "chart.line.uptrend.xyaxis")
-                        .font(.caption)
-                        .tertiaryText()
+                    .chartXAxis {
+                        AxisMarks(values: .stride(by: xAxisStride, count: xAxisCount)) { value in
+                            AxisValueLabel {
+                                if let date = value.as(Date.self) {
+                                    switch selectedRange {
+                                    case .oneYear, .all:
+                                        Text(date, format: .dateTime.month(.abbreviated).year())
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    case .sixMonths, .threeMonths, .oneMonth:
+                                        Text(date, format: .dateTime.month(.abbreviated).day())
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
+                            AxisGridLine()
+                                .foregroundStyle(Color.borderSubtle)
+                        }
+                    }
+                    
+                    HStack {
+                        Spacer()
+                        Label(unit.symbol, systemImage: "chart.line.uptrend.xyaxis")
+                            .font(.caption)
+                            .tertiaryText()
+                    }
                 }
             }
         }
     }
-}
-
-struct ChartDataPoint: Identifiable {
-    let id = UUID()
-    let date: Date
-    let weight: Double
-}
-
-#Preview {
-    let sampleEntries = [
-        WeightEntry(date: Date().addingTimeInterval(-86400 * 30), weight: 45.0, unit: .pounds),
-        WeightEntry(date: Date().addingTimeInterval(-86400 * 20), weight: 46.5, unit: .pounds),
-        WeightEntry(date: Date().addingTimeInterval(-86400 * 10), weight: 47.2, unit: .pounds),
-        WeightEntry(date: Date(), weight: 48.0, unit: .pounds)
-    ]
     
-    return WeightChartView(entries: sampleEntries, unit: .pounds)
-        .padding()
-        .frame(height: 250)
-        .background(Color.bgTertiary)
+    struct ChartDataPoint: Identifiable {
+        let id = UUID()
+        let date: Date
+        let weight: Double
+    }
+    
+    struct WeightChartView_Previews: PreviewProvider {
+        static var previews: some View {
+            let sampleEntries = [
+                WeightEntry(date: Date().addingTimeInterval(-86400 * 30), weight: 45.0, unit: .pounds),
+                WeightEntry(date: Date().addingTimeInterval(-86400 * 20), weight: 46.5, unit: .pounds),
+                WeightEntry(date: Date().addingTimeInterval(-86400 * 10), weight: 47.2, unit: .pounds),
+                WeightEntry(date: Date(), weight: 48.0, unit: .pounds)
+            ]
+            
+            WeightChartView(entries: sampleEntries, unit: .pounds)
+                .padding()
+                .frame(height: 250)
+                .background(Color.bgTertiary)
+        }
+    }
+    
 }
-

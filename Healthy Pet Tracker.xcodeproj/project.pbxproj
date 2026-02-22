@@ -6,7 +6,20 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		BA608EEE2F4AACA60016F44C /* WeightStatsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA608EED2F4AACA60016F44C /* WeightStatsCard.swift */; };
+		BA608EF02F4AACB40016F44C /* DataExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA608EEF2F4AACB40016F44C /* DataExporter.swift */; };
+		BA608EF22F4AACC60016F44C /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA608EF12F4AACC60016F44C /* ShareSheet.swift */; };
+		BA608EF42F4AACEA0016F44C /* WeightGoalCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA608EF32F4AACEA0016F44C /* WeightGoalCard.swift */; };
+		BA608EF62F4AACF30016F44C /* HapticManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA608EF52F4AACF30016F44C /* HapticManager.swift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
+		BA608EED2F4AACA60016F44C /* WeightStatsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightStatsCard.swift; sourceTree = "<group>"; };
+		BA608EEF2F4AACB40016F44C /* DataExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataExporter.swift; sourceTree = "<group>"; };
+		BA608EF12F4AACC60016F44C /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
+		BA608EF32F4AACEA0016F44C /* WeightGoalCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightGoalCard.swift; sourceTree = "<group>"; };
+		BA608EF52F4AACF30016F44C /* HapticManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticManager.swift; sourceTree = "<group>"; };
 		BABB7C1E2F2BF40E00D933FE /* Healthy Pet Tracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Healthy Pet Tracker.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -34,6 +47,11 @@
 			children = (
 				BABB7C202F2BF40E00D933FE /* Healthy Pet Tracker */,
 				BABB7C1F2F2BF40E00D933FE /* Products */,
+				BA608EED2F4AACA60016F44C /* WeightStatsCard.swift */,
+				BA608EEF2F4AACB40016F44C /* DataExporter.swift */,
+				BA608EF12F4AACC60016F44C /* ShareSheet.swift */,
+				BA608EF32F4AACEA0016F44C /* WeightGoalCard.swift */,
+				BA608EF52F4AACF30016F44C /* HapticManager.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -119,6 +137,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BA608EF62F4AACF30016F44C /* HapticManager.swift in Sources */,
+				BA608EF42F4AACEA0016F44C /* WeightGoalCard.swift in Sources */,
+				BA608EF22F4AACC60016F44C /* ShareSheet.swift in Sources */,
+				BA608EF02F4AACB40016F44C /* DataExporter.swift in Sources */,
+				BA608EEE2F4AACA60016F44C /* WeightStatsCard.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
