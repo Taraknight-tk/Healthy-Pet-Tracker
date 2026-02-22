@@ -28,7 +28,7 @@ struct AddWeightView: View {
         NavigationStack {
             ThemedForm {
                 Section("Weight Entry") {
-                    DatePicker("Date", selection: $date, displayedComponents: .date)
+                    DatePicker("Date", selection: $date, in: ...Date(), displayedComponents: .date)
                         .primaryText()
                     
                     HStack {
@@ -110,7 +110,7 @@ struct AddWeightView: View {
         }
         
         let newEntry = WeightEntry(
-            date: date,
+            date: min(date, Date()),
             weight: weightValue,
             unit: selectedUnit,
             notes: notes.trimmingCharacters(in: .whitespaces)
@@ -226,3 +226,4 @@ struct WeightComparisonView: View {
     return AddWeightView(pet: pet)
         .modelContainer(for: Pet.self, inMemory: true)
 }
+

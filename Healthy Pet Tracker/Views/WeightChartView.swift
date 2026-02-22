@@ -42,7 +42,7 @@ struct WeightChartView: View {
             case .sixMonths:
                 return Calendar.current.date(byAdding: .month, value: -6, to: reference)
             case .oneYear:
-                return Calendar.current.date(byAdding: .year, value: -1, to: reference)
+                return Calendar.current.date(byAdding: .month, value: -12, to: reference)
             }
         }
     }
@@ -90,6 +90,47 @@ struct WeightChartView: View {
         let upper = maxWeight + padding
         
         return lower...upper
+    }
+    
+    // Adaptive x-axis stride based on range and data density
+    private var xAxisStride: AxisMarks.Values {
+        // Determine span in days and point count
+        let dates = chartData.map { $0.date }
+        let minDate = dates.min() ?? Date()
+        let maxDate = dates.max() ?? Date()
+        let spanDays = Calendar.current.dateComponents([.day], from: minDate, to: maxDate).day ?? 0
+        let pointCount = chartData.count
+        
+        switch selectedRange {
+        case .oneMonth:
+            // If many points or long span within a month, use ~every 3 days; otherwise weekly
+            if pointCount > 15 || spanDays > 21 {
+                return .stride(by: .day, count: 3)
+            } else {
+                return .stride(by: .weekOfYear)
+            }
+        case .threeMonths:
+            // Use weekly if dense, otherwise biweekly
+            if pointCount > 20 {
+                return .stride(by: .weekOfYear)
+            } else {
+                return .stride(by: .weekOfYear, count: 2)
+            }
+        case .sixMonths:
+            // Biweekly or monthly if sparse
+            if pointCount > 25 {
+                return .stride(by: .weekOfYear, count: 2)
+            } else {
+                return .stride(by: .month)
+            }
+        case .oneYear, .all:
+            // Monthly by default; if extremely sparse, show every 2 months
+            if pointCount < 6 {
+                return .stride(by: .month, count: 2)
+            } else {
+                return .stride(by: .month)
+            }
+        }
     }
     
     var body: some View {
@@ -172,12 +213,19 @@ struct WeightChartView: View {
                     }
                 }
                 .chartXAxis {
-                    AxisMarks { value in
+                    AxisMarks(values: xAxisStride) { value in
                         AxisValueLabel {
                             if let date = value.as(Date.self) {
-                                Text(date, format: .dateTime.month(.abbreviated).day())
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                switch selectedRange {
+                                case .oneYear, .all:
+                                    Text(date, format: .dateTime.month(.abbreviated).year())
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                case .sixMonths, .threeMonths, .oneMonth:
+                                    Text(date, format: .dateTime.month(.abbreviated).day())
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                         }
                         AxisGridLine()
