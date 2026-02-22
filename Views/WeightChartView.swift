@@ -10,8 +10,56 @@ struct WeightChartView: View {
     let entries: [WeightEntry]
     let unit: WeightUnit
     
+    @State private var selectedRange: DateRange = .all
+    
+    enum DateRange: String, CaseIterable, Identifiable {
+        case all
+        case oneMonth
+        case threeMonths
+        case sixMonths
+        case oneYear
+        
+        var id: String { rawValue }
+        
+        var title: String {
+            switch self {
+            case .all: return "All"
+            case .oneMonth: return "1M"
+            case .threeMonths: return "3M"
+            case .sixMonths: return "6M"
+            case .oneYear: return "1Y"
+            }
+        }
+        
+        func startDate(from reference: Date) -> Date? {
+            switch self {
+            case .all:
+                return nil
+            case .oneMonth:
+                return Calendar.current.date(byAdding: .month, value: -1, to: reference)
+            case .threeMonths:
+                return Calendar.current.date(byAdding: .month, value: -3, to: reference)
+            case .sixMonths:
+                return Calendar.current.date(byAdding: .month, value: -6, to: reference)
+            case .oneYear:
+                return Calendar.current.date(byAdding: .year, value: -1, to: reference)
+            }
+        }
+    }
+    
+    private var filteredEntries: [WeightEntry] {
+        guard !entries.isEmpty else { return [] }
+        // Use the latest entry date as the reference for ranges
+        let latestDate = entries.map { $0.date }.max() ?? Date()
+        if let start = selectedRange.startDate(from: latestDate) {
+            return entries.filter { $0.date >= start && $0.date <= latestDate }
+        } else {
+            return entries
+        }
+    }
+    
     private var chartData: [ChartDataPoint] {
-        entries.map { entry in
+        filteredEntries.map { entry in
             let weight: Double
             // Convert all weights to the preferred unit for consistent display
             if entry.unit == unit {
@@ -46,11 +94,19 @@ struct WeightChartView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if entries.isEmpty {
+            Picker("Range", selection: $selectedRange) {
+                ForEach(DateRange.allCases) { range in
+                    Text(range.title).tag(range)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.bottom, 4)
+            
+            if filteredEntries.isEmpty {
                 Text("No data to display")
                     .secondaryText()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if entries.count == 1 {
+            } else if filteredEntries.count == 1 {
                 VStack(spacing: 8) {
                     Text("Add more weight entries to see the trend")
                         .font(.subheadline)
@@ -101,6 +157,7 @@ struct WeightChartView: View {
                     .interpolationMethod(.catmullRom)
                 }
                 .chartYScale(domain: weightRange)
+                .chartXScale(domain: (chartData.map { $0.date }.min() ?? Date())...(chartData.map { $0.date }.max() ?? Date()))
                 .chartYAxis {
                     AxisMarks(position: .leading) { value in
                         AxisValueLabel {
