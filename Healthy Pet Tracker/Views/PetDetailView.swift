@@ -7,13 +7,18 @@ import SwiftUI
 import SwiftData
 import Charts
 
+struct CSVExportData: Identifiable {
+    let id = UUID()
+    let data: Data
+    let fileName: String
+}
+
 struct PetDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Bindable var pet: Pet
     @State private var showingAddWeight = false
     @State private var selectedEntry: WeightEntry?
-    @State private var showingShareSheet = false
-    @State private var csvData: String = ""
+    @State private var csvExport: CSVExportData?
     
     var body: some View {
         List {
@@ -81,8 +86,20 @@ struct PetDetailView: View {
                     
                     if !pet.sortedWeightEntries.isEmpty {
                         Button(action: {
-                            csvData = DataExporter.exportToCSV(pet: pet)
-                            showingShareSheet = true
+                            let csvString = DataExporter.exportToCSV(pet: pet)
+                            print("CSV Export - Entries count: \(pet.weightEntries.count)")
+                            print("CSV Export - Sorted entries count: \(pet.sortedWeightEntries.count)")
+                            print("CSV Export - Data length: \(csvString.count) characters")
+                            print("CSV Export - Content preview:\n\(String(csvString.prefix(300)))")
+                            
+                            if let data = csvString.data(using: .utf8) {
+                                csvExport = CSVExportData(
+                                    data: data,
+                                    fileName: "\(pet.name)_weight_data.csv"
+                                )
+                            } else {
+                                print("ERROR: Failed to convert CSV string to data")
+                            }
                         }) {
                             Label("Export Data", systemImage: "square.and.arrow.up")
                         }
@@ -99,10 +116,8 @@ struct PetDetailView: View {
         .sheet(item: $selectedEntry) { entry in
             EditWeightView(entry: entry)
         }
-        .sheet(isPresented: $showingShareSheet) {
-            if let data = csvData.data(using: .utf8) {
-                ShareSheet(items: [data], fileName: "\(pet.name)_weight_data.csv")
-            }
+        .sheet(item: $csvExport) { exportData in
+            ShareSheet(items: [exportData.data], fileName: exportData.fileName)
         }
     }
     
