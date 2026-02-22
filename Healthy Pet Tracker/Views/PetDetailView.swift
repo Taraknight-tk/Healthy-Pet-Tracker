@@ -74,9 +74,6 @@ struct PetDetailView: View {
         .navigationBarTitleDisplayMode(.large)
         .toolbarBackground(Color.bgSecondary, for: .navigationBar)
         .toolbarColorScheme(.light, for: .navigationBar)
-        .onAppear {
-            configureNavigationBarAppearance()
-        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
@@ -87,18 +84,12 @@ struct PetDetailView: View {
                     if !pet.sortedWeightEntries.isEmpty {
                         Button(action: {
                             let csvString = DataExporter.exportToCSV(pet: pet)
-                            print("CSV Export - Entries count: \(pet.weightEntries.count)")
-                            print("CSV Export - Sorted entries count: \(pet.sortedWeightEntries.count)")
-                            print("CSV Export - Data length: \(csvString.count) characters")
-                            print("CSV Export - Content preview:\n\(String(csvString.prefix(300)))")
                             
                             if let data = csvString.data(using: .utf8) {
                                 csvExport = CSVExportData(
                                     data: data,
                                     fileName: "\(pet.name)_weight_data.csv"
                                 )
-                            } else {
-                                print("ERROR: Failed to convert CSV string to data")
                             }
                         }) {
                             Label("Export Data", systemImage: "square.and.arrow.up")
@@ -129,24 +120,6 @@ struct PetDetailView: View {
                 modelContext.delete(entry)
             }
         }
-    }
-    
-    private func configureNavigationBarAppearance() {
-        let appearance = UINavigationBarAppearance()
-        appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = UIColor(Color.bgSecondary)
-        
-        // Set title text color to dark brown
-        appearance.largeTitleTextAttributes = [
-            .foregroundColor: UIColor(Color.textPrimary)
-        ]
-        appearance.titleTextAttributes = [
-            .foregroundColor: UIColor(Color.textPrimary)
-        ]
-        
-        UINavigationBar.appearance().standardAppearance = appearance
-        UINavigationBar.appearance().scrollEdgeAppearance = appearance
-        UINavigationBar.appearance().compactAppearance = appearance
     }
 }
 

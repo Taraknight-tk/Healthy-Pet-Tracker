@@ -48,32 +48,38 @@ struct WeightChartView: View {
         }
     }
     
-    private var filteredEntries: [WeightEntry] {
+    // Compute expensive calculations once
+    private var filteredAndConvertedData: [ChartDataPoint] {
         guard !entries.isEmpty else { return [] }
+        
         // Use the latest entry date as the reference for ranges
         let latestDate = entries.map { $0.date }.max() ?? Date()
+        
+        // Filter by date range
+        let filtered: [WeightEntry]
         if let start = selectedRange.startDate(from: latestDate) {
-            return entries.filter { $0.date >= start && $0.date <= latestDate }
+            filtered = entries.filter { $0.date >= start && $0.date <= latestDate }
         } else {
-            return entries
+            filtered = entries
         }
-    }
-    
-    private var chartData: [ChartDataPoint] {
-        filteredEntries.map { entry in
+        
+        // Convert units
+        return filtered.map { entry in
             let weight: Double
-            // Convert all weights to the preferred unit for consistent display
             if entry.unit == unit {
                 weight = entry.weight
             } else {
-                // Convert between units
-                switch (entry.unit, unit) {
-                case (.pounds, .kilograms):
-                    weight = entry.weight * 0.453592
-                case (.kilograms, .pounds):
-                    weight = entry.weight / 0.453592
-                default:
-                    weight = entry.weight
+                // Convert to kg first, then to target unit
+                let weightInKg = entry.weightInKg
+                switch unit {
+                case .kilograms:
+                    weight = weightInKg
+                case .pounds:
+                    weight = weightInKg / 0.453592
+                case .ounces:
+                    weight = weightInKg * 35.274
+                case .grams:
+                    weight = weightInKg * 1000
                 }
             }
             return ChartDataPoint(date: entry.date, weight: weight)
@@ -81,7 +87,7 @@ struct WeightChartView: View {
     }
     
     private var weightRange: ClosedRange<Double> {
-        let weights = chartData.map { $0.weight }
+        let weights = filteredAndConvertedData.map { $0.weight }
         guard let minWeight = weights.min(), let maxWeight = weights.max() else {
             return 0...100
         }
@@ -95,11 +101,11 @@ struct WeightChartView: View {
     
     // Get the appropriate axis stride based on selected range and data
     private var xAxisStride: Calendar.Component {
-        let dates = chartData.map { $0.date }
+        let dates = filteredAndConvertedData.map { $0.date }
         let minDate = dates.min() ?? Date()
         let maxDate = dates.max() ?? Date()
         let spanDays = Calendar.current.dateComponents([.day], from: minDate, to: maxDate).day ?? 0
-        let pointCount = chartData.count
+        let pointCount = filteredAndConvertedData.count
         
         switch selectedRange {
         case .oneMonth:
@@ -112,7 +118,7 @@ struct WeightChartView: View {
     }
     
     private var xAxisCount: Int {
-        let pointCount = chartData.count
+        let pointCount = filteredAndConvertedData.count
         
         switch selectedRange {
         case .oneMonth:
@@ -136,11 +142,11 @@ struct WeightChartView: View {
             .pickerStyle(.segmented)
             .padding(.bottom, 4)
             
-            if filteredEntries.isEmpty {
+            if filteredAndConvertedData.isEmpty {
                 Text("No data to display")
                     .secondaryText()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if filteredEntries.count == 1 {
+            } else if filteredAndConvertedData.count == 1 {
                 VStack(spacing: 8) {
                     Text("Add more weight entries to see the trend")
                         .font(.subheadline)
@@ -149,7 +155,7 @@ struct WeightChartView: View {
                     HStack {
                         Spacer()
                         VStack {
-                            Text(String(format: "%.1f", chartData[0].weight))
+                            Text(String(format: "%.1f", filteredAndConvertedData[0].weight))
                                 .font(.title)
                                 .fontWeight(.bold)
                                 .foregroundStyle(Color.accentActive)
@@ -164,7 +170,7 @@ struct WeightChartView: View {
             } else {
                 VStack(spacing: 8) {
                     if let selectedDate = selectedDate,
-                       let selectedPoint = chartData.first(where: { Calendar.current.isDate($0.date, inSameDayAs: selectedDate) }) {
+                       let selectedPoint = filteredAndConvertedData.first(where: { Calendar.current.isDate($0.date, inSameDayAs: selectedDate) }) {
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(selectedPoint.date, format: .dateTime.month().day().year())
@@ -188,7 +194,7 @@ struct WeightChartView: View {
                         .cornerRadius(8)
                     }
                     
-                    Chart(chartData) { dataPoint in
+                    Chart(filteredAndConvertedData) { dataPoint in
                         LineMark(
                             x: .value("Date", dataPoint.date),
                             y: .value("Weight", dataPoint.weight)
@@ -217,7 +223,7 @@ struct WeightChartView: View {
                         .interpolationMethod(.catmullRom)
                     }
                     .chartYScale(domain: weightRange)
-                    .chartXScale(domain: (chartData.map { $0.date }.min() ?? Date())...(chartData.map { $0.date }.max() ?? Date()))
+                    .chartXScale(domain: (filteredAndConvertedData.map { $0.date }.min() ?? Date())...(filteredAndConvertedData.map { $0.date }.max() ?? Date()))
                     .chartXSelection(value: $selectedDate)
                     .chartYAxis {
                         AxisMarks(position: .leading) { value in

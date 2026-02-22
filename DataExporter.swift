@@ -12,25 +12,17 @@ struct DataExporter {
         
         let sortedEntries = pet.sortedWeightEntries
         
-        print("DEBUG: Exporting for pet: \(pet.name)")
-        print("DEBUG: Total weight entries: \(pet.weightEntries.count)")
-        print("DEBUG: Sorted weight entries: \(sortedEntries.count)")
-        
-        for (index, entry) in sortedEntries.enumerated() {
+        for entry in sortedEntries {
             let dateString = entry.date.formatted(date: .numeric, time: .omitted)
             let weightString = String(format: "%.2f", entry.weight)
             let notesEscaped = entry.notes.replacingOccurrences(of: "\"", with: "\"\"")
             let line = "\(dateString),\(weightString),\(entry.unit.symbol),\"\(notesEscaped)\"\n"
             csv += line
-            print("DEBUG: Entry \(index + 1): \(line.trimmingCharacters(in: .newlines))")
         }
         
         if sortedEntries.isEmpty {
-            print("DEBUG: No entries found, adding placeholder")
             csv += "No weight entries found\n"
         }
-        
-        print("DEBUG: Final CSV length: \(csv.count) characters")
         
         return csv
     }

@@ -22,10 +22,34 @@ struct PetWeightTrackerApp: App {
         }
     }()
     
+    init() {
+        // Configure navigation bar appearance once at app launch
+        configureNavigationBarAppearance()
+    }
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
         }
         .modelContainer(sharedModelContainer)
+    }
+    
+    private func configureNavigationBarAppearance() {
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = UIColor(Color.bgSecondary)
+        
+        // Set title text color
+        appearance.largeTitleTextAttributes = [
+            .foregroundColor: UIColor(Color.textPrimary)
+        ]
+        appearance.titleTextAttributes = [
+            .foregroundColor: UIColor(Color.textPrimary)
+        ]
+        
+        // Apply globally
+        UINavigationBar.appearance().standardAppearance = appearance
+        UINavigationBar.appearance().scrollEdgeAppearance = appearance
+        UINavigationBar.appearance().compactAppearance = appearance
     }
 }

@@ -33,7 +33,8 @@ final class Pet {
     }
     
     var latestWeight: WeightEntry? {
-        weightEntries.sorted { $0.date > $1.date }.first
+        // More efficient: use max instead of sorting entire array
+        weightEntries.max(by: { $0.date < $1.date })
     }
     
     var hasWeightGoal: Bool {
