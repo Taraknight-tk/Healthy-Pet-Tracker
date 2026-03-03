@@ -15,10 +15,12 @@ struct CSVExportData: Identifiable {
 
 struct PetDetailView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
     @Bindable var pet: Pet
     @State private var showingAddWeight = false
     @State private var selectedEntry: WeightEntry?
     @State private var csvExport: CSVExportData?
+    @State private var showingDeleteAlert = false
     
     var body: some View {
         List {
@@ -80,11 +82,11 @@ struct PetDetailView: View {
                     Button(action: { showingAddWeight = true }) {
                         Label("Add Weight", systemImage: "plus")
                     }
-                    
+
                     if !pet.sortedWeightEntries.isEmpty {
                         Button(action: {
                             let csvString = DataExporter.exportToCSV(pet: pet)
-                            
+
                             if let data = csvString.data(using: .utf8) {
                                 csvExport = CSVExportData(
                                     data: data,
@@ -94,6 +96,12 @@ struct PetDetailView: View {
                         }) {
                             Label("Export Data", systemImage: "square.and.arrow.up")
                         }
+                    }
+
+                    Divider()
+
+                    Button(role: .destructive, action: { showingDeleteAlert = true }) {
+                        Label("Delete Pet", systemImage: "trash")
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
@@ -109,6 +117,15 @@ struct PetDetailView: View {
         }
         .sheet(item: $csvExport) { exportData in
             ShareSheet(items: [exportData.data], fileName: exportData.fileName)
+        }
+        .alert("Delete \(pet.name)?", isPresented: $showingDeleteAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                modelContext.delete(pet)
+                dismiss()
+            }
+        } message: {
+            Text("This will permanently delete \(pet.name) and all their weight history. This cannot be undone.")
         }
     }
     

@@ -12,6 +12,7 @@ struct ContentView: View {
     @State private var showingAddPet = false
     @State private var renamingPet: Pet? = nil
     @State private var draftName: String = ""
+    @State private var deletingPet: Pet? = nil
     
     var body: some View {
         NavigationStack {
@@ -81,6 +82,13 @@ struct ContentView: View {
                 }
                 .listRowBackground(Color.bgTertiary)
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button(role: .destructive) {
+                        deletingPet = pet
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                    .tint(.red)
+
                     Button {
                         draftName = pet.name
                         renamingPet = pet
@@ -112,6 +120,20 @@ struct ContentView: View {
         }
         .scrollContentBackground(.hidden)
         .background(Color.bgPrimary)
+        .alert("Delete \(deletingPet?.name ?? "Pet")?", isPresented: Binding(
+            get: { deletingPet != nil },
+            set: { if !$0 { deletingPet = nil } }
+        )) {
+            Button("Cancel", role: .cancel) { deletingPet = nil }
+            Button("Delete", role: .destructive) {
+                if let pet = deletingPet {
+                    withAnimation { modelContext.delete(pet) }
+                    deletingPet = nil
+                }
+            }
+        } message: {
+            Text("This will permanently delete \(deletingPet?.name ?? "this pet") and all their weight history. This cannot be undone.")
+        }
     }
     
     private func deletePets(offsets: IndexSet) {
