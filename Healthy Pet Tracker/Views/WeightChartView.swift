@@ -99,36 +99,43 @@ struct WeightChartView: View {
         return lower...upper
     }
     
-    // Get the appropriate axis stride based on selected range and data
-    private var xAxisStride: Calendar.Component {
+    // Total months spanned by the currently visible data
+    private var dataSpanMonths: Int {
         let dates = filteredAndConvertedData.map { $0.date }
-        let minDate = dates.min() ?? Date()
-        let maxDate = dates.max() ?? Date()
-        let spanDays = Calendar.current.dateComponents([.day], from: minDate, to: maxDate).day ?? 0
-        let pointCount = filteredAndConvertedData.count
-        
+        guard let minDate = dates.min(), let maxDate = dates.max() else { return 0 }
+        return max(1, Calendar.current.dateComponents([.month], from: minDate, to: maxDate).month ?? 0)
+    }
+
+    // Axis tick unit — always weeks for 1M so we get ~4 clean labels;
+    // months for everything else (count controls the spacing).
+    private var xAxisStride: Calendar.Component {
         switch selectedRange {
         case .oneMonth:
-            return (pointCount > 15 || spanDays > 21) ? .day : .weekOfYear
-        case .threeMonths:
-            return pointCount > 20 ? .weekOfYear : .weekOfYear
-        case .sixMonths, .oneYear, .all:
+            return .weekOfYear
+        case .threeMonths, .sixMonths, .oneYear, .all:
             return .month
         }
     }
-    
+
+    // How many stride units to skip between labels — keeps tick count to ~4–6
+    // regardless of how much data exists.
     private var xAxisCount: Int {
-        let pointCount = filteredAndConvertedData.count
-        
         switch selectedRange {
         case .oneMonth:
-            return pointCount > 15 ? 3 : 1
+            return 1                   // every week → ~4 labels
         case .threeMonths:
-            return pointCount > 20 ? 1 : 2
+            return 1                   // every month → 3 labels
         case .sixMonths:
-            return pointCount > 25 ? 1 : 1
-        case .oneYear, .all:
-            return pointCount < 6 ? 2 : 1
+            return 2                   // every 2 months → 3 labels
+        case .oneYear:
+            return 2                   // every 2 months → ~6 labels
+        case .all:
+            let m = dataSpanMonths
+            if m > 48 { return 12 }    // >4 yrs  → yearly
+            if m > 24 { return 6  }    // 2–4 yrs → every 6 months
+            if m > 12 { return 3  }    // 1–2 yrs → quarterly
+            if m > 6  { return 2  }    // 6–12 mo → every 2 months
+            return 1                   // ≤6 mo   → monthly
         }
     }
     
@@ -243,6 +250,11 @@ struct WeightChartView: View {
                             AxisValueLabel {
                                 if let date = value.as(Date.self) {
                                     switch selectedRange {
+                                    case .all where dataSpanMonths > 24:
+                                        // Many years of data — just show the year
+                                        Text(date, format: .dateTime.year())
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
                                     case .oneYear, .all:
                                         Text(date, format: .dateTime.month(.abbreviated).year())
                                             .font(.caption)

@@ -13,6 +13,7 @@ struct AddPetView: View {
     @State private var name = ""
     @State private var birthday = Date()
     @State private var species = ""
+    @State private var customSpecies = ""
     @State private var initialWeight = ""
     @State private var selectedUnit = WeightUnit.pounds
     @State private var showingError = false
@@ -39,8 +40,9 @@ struct AddPetView: View {
                     .primaryText()
                     
                     if species == "Other" {
-                        TextField("Specify Species", text: $species)
+                        TextField("e.g. Ferret, Hedgehog…", text: $customSpecies)
                             .primaryText()
+                            .autocorrectionDisabled()
                     }
                 }
                 .themedSection()
@@ -104,6 +106,7 @@ struct AddPetView: View {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
         !species.isEmpty &&
         species != "Select Species" &&
+        (species != "Other" || !customSpecies.trimmingCharacters(in: .whitespaces).isEmpty) &&
         !initialWeight.isEmpty &&
         Double(initialWeight) != nil &&
         Double(initialWeight)! > 0
@@ -117,10 +120,14 @@ struct AddPetView: View {
             return
         }
         
+        let actualSpecies = species == "Other"
+            ? customSpecies.trimmingCharacters(in: .whitespaces)
+            : species
+
         let newPet = Pet(
             name: name.trimmingCharacters(in: .whitespaces),
             birthday: birthday,
-            species: species,
+            species: actualSpecies,
             initialWeight: weight,
             unit: selectedUnit
         )
