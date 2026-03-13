@@ -16,6 +16,7 @@ struct CSVExportData: Identifiable {
 struct PetDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Bindable var pet: Pet
     @State private var showingAddWeight = false
     @State private var selectedEntry: WeightEntry?
@@ -105,6 +106,7 @@ struct PetDetailView: View {
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
+                        .accessibilityLabel("More options")
                 }
                 .tint(.accentPrimary)
             }
@@ -130,7 +132,7 @@ struct PetDetailView: View {
     }
     
     private func deleteEntries(offsets: IndexSet) {
-        withAnimation {
+        withAnimation(reduceMotion ? nil : .default) {
             let sortedEntries = pet.sortedWeightEntries.reversed()
             for index in offsets {
                 let entry = Array(sortedEntries)[index]

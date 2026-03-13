@@ -23,6 +23,7 @@ struct WeightGoalCard: View {
                         .font(.title3)
                         .foregroundStyle(Color.accentPrimary)
                 }
+                .accessibilityLabel(pet.hasWeightGoal ? "Edit weight goal" : "Add weight goal")
             }
             
             if pet.hasWeightGoal, 
@@ -51,6 +52,10 @@ struct WeightGoalCard: View {
                             Text(String(format: "%.0f%%", progress * 100))
                                 .font(.title3)
                                 .fontWeight(.semibold)
+                                .foregroundStyle(progressColor(progress))
+                            // Stage label so status isn't conveyed by color alone
+                            Text(progressStageLabel(progress))
+                                .font(.caption2)
                                 .foregroundStyle(progressColor(progress))
                         }
                     }
@@ -106,6 +111,13 @@ struct WeightGoalCard: View {
         } else {
             return .accentMuted
         }
+    }
+
+    private func progressStageLabel(_ progress: Double) -> String {
+        if progress >= 1.0  { return "Goal achieved!" }
+        if progress >= 0.75 { return "Almost there" }
+        if progress >= 0.5  { return "On track" }
+        return "Just getting started"
     }
 }
 

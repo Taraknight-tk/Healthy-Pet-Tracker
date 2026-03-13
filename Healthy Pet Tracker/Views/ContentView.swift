@@ -8,6 +8,7 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Query(sort: \Pet.name) private var pets: [Pet]
     @State private var showingAddPet = false
     @State private var renamingPet: Pet? = nil
@@ -127,7 +128,7 @@ struct ContentView: View {
             Button("Cancel", role: .cancel) { deletingPet = nil }
             Button("Delete", role: .destructive) {
                 if let pet = deletingPet {
-                    withAnimation { modelContext.delete(pet) }
+                    withAnimation(reduceMotion ? nil : .default) { modelContext.delete(pet) }
                     deletingPet = nil
                 }
             }
@@ -137,7 +138,7 @@ struct ContentView: View {
     }
     
     private func deletePets(offsets: IndexSet) {
-        withAnimation {
+        withAnimation(reduceMotion ? nil : .default) {
             for index in offsets {
                 modelContext.delete(pets[index])
             }
@@ -147,7 +148,7 @@ struct ContentView: View {
 
 struct PetRowView: View {
     let pet: Pet
-    
+
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
@@ -161,9 +162,9 @@ struct PetRowView: View {
                     .font(.caption)
                     .tertiaryText()
             }
-            
+
             Spacer()
-            
+
             if let latestWeight = pet.latestWeight {
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(latestWeight.displayWeight)
@@ -181,6 +182,20 @@ struct PetRowView: View {
             }
         }
         .padding(.vertical, 4)
+        // VoiceOver reads the whole row as one unit instead of each label separately
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(rowAccessibilityLabel)
+    }
+
+    private var rowAccessibilityLabel: String {
+        var parts = ["\(pet.name), \(pet.species), \(pet.ageString)"]
+        if let latest = pet.latestWeight {
+            let dateString = latest.date.formatted(date: .abbreviated, time: .omitted)
+            parts.append("Last weight: \(latest.displayWeight) on \(dateString)")
+        } else {
+            parts.append("No weight entries yet")
+        }
+        return parts.joined(separator: ". ")
     }
 }
 

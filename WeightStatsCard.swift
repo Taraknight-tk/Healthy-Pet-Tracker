@@ -80,16 +80,20 @@ struct StatItem: View {
             Image(systemName: icon)
                 .font(.title3)
                 .foregroundStyle(color)
-            
+                .accessibilityHidden(true)  // decorative — title + value carry the meaning
+
             Text(value)
                 .font(.headline)
                 .primaryText()
-            
+
             Text(title)
                 .font(.caption)
                 .tertiaryText()
         }
         .frame(maxWidth: .infinity)
+        // Reads as e.g. "Trend: Gaining" instead of three separate elements
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(title): \(value)")
     }
 }
 
