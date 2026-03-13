@@ -22,6 +22,7 @@ struct WeightGoalCard: View {
                     Image(systemName: pet.hasWeightGoal ? "pencil.circle.fill" : "plus.circle.fill")
                         .font(.title3)
                         .foregroundStyle(Color.accentPrimary)
+                        .frame(minWidth: 44, minHeight: 44)  // meets 44pt minimum tap target
                 }
                 .accessibilityLabel(pet.hasWeightGoal ? "Edit weight goal" : "Add weight goal")
             }

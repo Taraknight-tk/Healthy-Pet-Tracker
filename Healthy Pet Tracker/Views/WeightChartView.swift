@@ -193,7 +193,9 @@ struct WeightChartView: View {
                             Button(action: { self.selectedDate = nil }) {
                                 Image(systemName: "xmark.circle.fill")
                                     .foregroundStyle(.secondary)
+                                    .frame(minWidth: 44, minHeight: 44)  // meets 44pt minimum tap target
                             }
+                            .accessibilityLabel("Dismiss")
                         }
                         .padding(.horizontal)
                         .padding(.vertical, 8)
@@ -232,6 +234,11 @@ struct WeightChartView: View {
                     .chartYScale(domain: weightRange)
                     .chartXScale(domain: (filteredAndConvertedData.map { $0.date }.min() ?? Date())...(filteredAndConvertedData.map { $0.date }.max() ?? Date()))
                     .chartXSelection(value: $selectedDate)
+                    .accessibilityChartDescriptor(WeightChartDescriptor(
+                        data: filteredAndConvertedData,
+                        unit: unit,
+                        rangeTitle: selectedRange.title
+                    ))
                     .chartYAxis {
                         AxisMarks(position: .leading) { value in
                             AxisValueLabel {
@@ -286,6 +293,58 @@ struct WeightChartView: View {
         let id = UUID()
         let date: Date
         let weight: Double
+    }
+
+    // MARK: - Accessibility chart descriptor
+    // Gives VoiceOver users a structured, navigable summary of the chart data.
+    struct WeightChartDescriptor: AXChartDescriptorRepresentable {
+        let data: [ChartDataPoint]
+        let unit: WeightUnit
+        let rangeTitle: String
+
+        func makeChartDescriptor() -> AXChartDescriptor {
+            let sorted = data.sorted { $0.date < $1.date }
+            let dateLabels = sorted.map { $0.date.formatted(date: .abbreviated, time: .omitted) }
+            let weights    = sorted.map { $0.weight }
+
+            let xAxis = AXCategoricalDataAxisDescriptor(
+                title: "Date",
+                categoryOrder: dateLabels
+            )
+
+            let yAxis = AXNumericDataAxisDescriptor(
+                title: "Weight (\(unit.symbol))",
+                range: (weights.min() ?? 0)...(weights.max() ?? 1),
+                gridlinePositions: []
+            ) { value in
+                String(format: "%.1f \(unit.symbol)", value)
+            }
+
+            let series = AXDataSeriesDescriptor(
+                name: "Weight",
+                isContinuous: true,
+                dataPoints: zip(dateLabels, weights).map { AXDataPoint(x: $0, y: $1) }
+            )
+
+            return AXChartDescriptor(
+                title: "Weight chart — \(rangeTitle)",
+                summary: summaryText(sorted: sorted),
+                xAxis: xAxis,
+                yAxis: yAxis,
+                additionalAxes: [],
+                series: [series]
+            )
+        }
+
+        private func summaryText(sorted: [ChartDataPoint]) -> String {
+            guard let first = sorted.first, let last = sorted.last else {
+                return "No data available"
+            }
+            let from = first.date.formatted(date: .abbreviated, time: .omitted)
+            let to   = last.date.formatted(date: .abbreviated, time: .omitted)
+            let latest = String(format: "%.1f \(unit.symbol)", last.weight)
+            return "\(sorted.count) entries from \(from) to \(to). Most recent: \(latest)"
+        }
     }
     
     struct WeightChartView_Previews: PreviewProvider {

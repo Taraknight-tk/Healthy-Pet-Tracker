@@ -7,57 +7,45 @@ import SwiftUI
 
 struct WeightStatsCard: View {
     let pet: Pet
-    
+
+    // Computed once and shared by both layout branches
+    private var avgWeightValue: String {
+        if let avg = pet.averageWeight(days: 30) {
+            return String(format: "%.1f %@", avg, pet.preferredUnit.symbol)
+        }
+        return "N/A"
+    }
+
     var body: some View {
         VStack(spacing: 16) {
             Text("30-Day Stats")
                 .font(.headline)
                 .primaryText()
                 .frame(maxWidth: .infinity, alignment: .leading)
-            
-            HStack(spacing: 12) {
-                // Trend indicator
-                StatItem(
-                    title: "Trend",
-                    value: pet.weightTrend.description,
-                    icon: pet.weightTrend.icon,
-                    color: pet.weightTrend.color
-                )
-                
-                Divider()
-                    .frame(height: 50)
-                    .background(Color.borderSubtle)
-                
-                // Average weight
-                if let avgWeight = pet.averageWeight(days: 30) {
-                    StatItem(
-                        title: "Average",
-                        value: String(format: "%.1f %@", avgWeight, pet.preferredUnit.symbol),
-                        icon: "chart.bar.fill",
-                        color: .accentPrimary
-                    )
-                } else {
-                    StatItem(
-                        title: "Average",
-                        value: "N/A",
-                        icon: "chart.bar.fill",
-                        color: .accentPrimary
-                    )
+
+            // ViewThatFits tries the HStack first; if text is too large to fit
+            // horizontally it automatically falls back to the VStack.
+            ViewThatFits(in: .horizontal) {
+                // Default: side-by-side columns
+                HStack(spacing: 12) {
+                    StatItem(title: "Trend",   value: pet.weightTrend.description, icon: pet.weightTrend.icon,   color: pet.weightTrend.color)
+                    Divider().frame(height: 50).background(Color.borderSubtle)
+                    StatItem(title: "Average", value: avgWeightValue,               icon: "chart.bar.fill",        color: .accentPrimary)
+                    Divider().frame(height: 50).background(Color.borderSubtle)
+                    StatItem(title: "Entries", value: "\(pet.weightEntries.count)", icon: "list.bullet",           color: .accentActive)
                 }
-                
-                Divider()
-                    .frame(height: 50)
-                    .background(Color.borderSubtle)
-                
-                // Total entries
-                StatItem(
-                    title: "Entries",
-                    value: "\(pet.weightEntries.count)",
-                    icon: "list.bullet",
-                    color: .accentActive
-                )
+                .frame(maxWidth: .infinity)
+
+                // Fallback: stacked rows for large Dynamic Type sizes
+                VStack(spacing: 12) {
+                    StatItem(title: "Trend",   value: pet.weightTrend.description, icon: pet.weightTrend.icon,   color: pet.weightTrend.color)
+                    Divider().background(Color.borderSubtle)
+                    StatItem(title: "Average", value: avgWeightValue,               icon: "chart.bar.fill",        color: .accentPrimary)
+                    Divider().background(Color.borderSubtle)
+                    StatItem(title: "Entries", value: "\(pet.weightEntries.count)", icon: "list.bullet",           color: .accentActive)
+                }
+                .frame(maxWidth: .infinity)
             }
-            .frame(maxWidth: .infinity)
         }
         .padding()
         .background(Color.bgTertiary)
