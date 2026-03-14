@@ -283,6 +283,8 @@ struct WeightChartView: View {
                         Label(unit.symbol, systemImage: "chart.line.uptrend.xyaxis")
                             .font(.caption)
                             .tertiaryText()
+                            // Suppress the SF Symbol name; the unit text is sufficient
+                            .accessibilityLabel(unit.symbol)
                     }
                 }
             }

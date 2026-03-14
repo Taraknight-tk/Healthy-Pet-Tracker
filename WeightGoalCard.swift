@@ -64,11 +64,14 @@ struct WeightGoalCard: View {
                     ProgressView(value: progress)
                         .tint(progressColor(progress))
                         .scaleEffect(y: 1.5)
+                        .accessibilityLabel("Weight goal progress")
+                        .accessibilityValue("\(Int(progress * 100)) percent — \(progressStageLabel(progress))")
                     
                     if progress >= 1.0 {
                         HStack {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundStyle(.green)
+                                .accessibilityHidden(true)
                             Text("Goal achieved! 🎉")
                                 .font(.subheadline)
                                 .fontWeight(.medium)
@@ -81,12 +84,14 @@ struct WeightGoalCard: View {
                     HStack {
                         Image(systemName: "target")
                             .foregroundStyle(Color.accentMuted)
+                            .accessibilityHidden(true)
                         Text("Set a weight goal")
                             .secondaryText()
                         Spacer()
                         Image(systemName: "chevron.right")
                             .font(.caption)
                             .tertiaryText()
+                            .accessibilityHidden(true)
                     }
                     .padding(.vertical, 8)
                 }

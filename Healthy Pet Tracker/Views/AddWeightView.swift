@@ -161,12 +161,13 @@ struct WeightComparisonView: View {
             Image(systemName: difference > 0 ? "arrow.up.circle.fill" : difference < 0 ? "arrow.down.circle.fill" : "equal.circle.fill")
                 .foregroundStyle(difference > 0 ? Color.accentMuted : difference < 0 ? Color.accentActive : Color.accentPrimary)
                 .font(.title2)
-            
+                .accessibilityHidden(true)
+
             VStack(alignment: .leading, spacing: 4) {
                 Text("Change from last entry")
                     .font(.caption)
                     .tertiaryText()
-                
+
                 if difference == 0 {
                     Text("No change")
                         .font(.headline)
@@ -180,10 +181,18 @@ struct WeightComparisonView: View {
                         .tertiaryText()
                 }
             }
-            
+
             Spacer()
         }
         .padding(.vertical, 4)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(comparisonAccessibilityLabel)
+    }
+
+    private var comparisonAccessibilityLabel: String {
+        if difference == 0 { return "No change from last entry" }
+        let direction = difference > 0 ? "increase" : "decrease"
+        return "Change from last entry: \(displayDifference) \(direction), \(String(format: "%.1f", abs(percentageChange))) percent"
     }
     
     private func normalizedWeight(_ weight: Double, unit: WeightUnit) -> Double {

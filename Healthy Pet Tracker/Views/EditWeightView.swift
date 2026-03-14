@@ -125,31 +125,29 @@ struct EditWeightView: View {
         entry.date = date
         entry.unit = selectedUnit
         entry.notes = notes.trimmingCharacters(in: .whitespaces)
-        
+
+        HapticManager.shared.notification(.success)
         dismiss()
     }
-    
+
     private func deleteEntry() {
         modelContext.delete(entry)
+        HapticManager.shared.notification(.success)
         dismiss()
     }
-    
+
     private func configureNavigationBarAppearance() {
         let appearance = UINavigationBarAppearance()
         appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = UIColor(Color.bgSecondary)
-        
-        // Set title text color to dark brown
-        appearance.largeTitleTextAttributes = [
-            .foregroundColor: UIColor(Color.textPrimary)
-        ]
-        appearance.titleTextAttributes = [
-            .foregroundColor: UIColor(Color.textPrimary)
-        ]
-        
-        UINavigationBar.appearance().standardAppearance = appearance
+        // UIColor(named:) reads from the asset catalog and automatically
+        // resolves the correct light / dark / high-contrast variant.
+        appearance.backgroundColor = UIColor.named("bgSecondary")
+        appearance.largeTitleTextAttributes = [.foregroundColor: UIColor.named("textPrimary")]
+        appearance.titleTextAttributes      = [.foregroundColor: UIColor.named("textPrimary")]
+
+        UINavigationBar.appearance().standardAppearance   = appearance
         UINavigationBar.appearance().scrollEdgeAppearance = appearance
-        UINavigationBar.appearance().compactAppearance = appearance
+        UINavigationBar.appearance().compactAppearance    = appearance
     }
 }
 

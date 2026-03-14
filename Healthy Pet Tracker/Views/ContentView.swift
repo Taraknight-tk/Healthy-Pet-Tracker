@@ -54,6 +54,7 @@ struct ContentView: View {
             Image(systemName: "pawprint.fill")
                 .font(.system(size: 60))
                 .foregroundStyle(Color.accentMuted)
+                .accessibilityHidden(true)
             Text("No Pets Yet")
                 .font(.title2)
                 .fontWeight(.semibold)
@@ -129,6 +130,7 @@ struct ContentView: View {
                 if let pet = deletingPet {
                     withAnimation(reduceMotion ? nil : .default) { modelContext.delete(pet) }
                     deletingPet = nil
+                    HapticManager.shared.notification(.success)
                 }
             }
         } message: {

@@ -138,6 +138,7 @@ struct PetDetailView: View {
                 modelContext.delete(entry)
             }
         }
+        HapticManager.shared.notification(.success)
     }
 }
 
@@ -168,6 +169,7 @@ struct PetInfoCard: View {
                 Image(systemName: speciesIcon(for: pet.species))
                     .font(.system(size: 50))
                     .foregroundStyle(Color.accentPrimary)
+                    .accessibilityHidden(true)
             }
             
             if let latest = pet.latestWeight {
@@ -240,7 +242,7 @@ struct PetInfoCard: View {
 
 struct WeightEntryRow: View {
     let entry: WeightEntry
-    
+
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
@@ -254,15 +256,25 @@ struct WeightEntryRow: View {
                         .lineLimit(1)
                 }
             }
-            
+
             Spacer()
-            
+
             Text(entry.displayWeight)
                 .font(.title3)
                 .fontWeight(.semibold)
                 .foregroundStyle(Color.accentActive)
         }
         .padding(.vertical, 4)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(rowAccessibilityLabel)
+        .accessibilityHint("Double-tap to edit")
+    }
+
+    private var rowAccessibilityLabel: String {
+        let dateStr = entry.date.formatted(date: .abbreviated, time: .omitted)
+        var parts = ["\(entry.displayWeight) on \(dateStr)"]
+        if !entry.notes.isEmpty { parts.append(entry.notes) }
+        return parts.joined(separator: ". ")
     }
 }
 
