@@ -26,7 +26,6 @@ struct ContentView: View {
             }
             .navigationTitle("Pet Weight Tracker")
             .toolbarBackground(Color.bgSecondary, for: .navigationBar)
-            .toolbarColorScheme(.light, for: .navigationBar)
             .background(Color.bgPrimary)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {

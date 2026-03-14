@@ -73,7 +73,6 @@ struct EditWeightView: View {
             .navigationTitle("Edit Weight")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(Color.bgSecondary, for: .navigationBar)
-            .toolbarColorScheme(.light, for: .navigationBar)
             .onAppear {
                 configureNavigationBarAppearance()
             }

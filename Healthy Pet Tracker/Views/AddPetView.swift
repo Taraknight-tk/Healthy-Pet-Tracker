@@ -74,7 +74,6 @@ struct AddPetView: View {
             .navigationTitle("Add New Pet")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(Color.bgSecondary, for: .navigationBar)
-            .toolbarColorScheme(.light, for: .navigationBar)
             .onAppear {
                 configureNavigationBarAppearance()
             }

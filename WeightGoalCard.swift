@@ -171,7 +171,6 @@ struct WeightGoalEditorView: View {
             .navigationTitle("Weight Goal")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(Color.bgSecondary, for: .navigationBar)
-            .toolbarColorScheme(.light, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {

@@ -76,7 +76,6 @@ struct PetDetailView: View {
         .navigationTitle(pet.name)
         .navigationBarTitleDisplayMode(.large)
         .toolbarBackground(Color.bgSecondary, for: .navigationBar)
-        .toolbarColorScheme(.light, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
