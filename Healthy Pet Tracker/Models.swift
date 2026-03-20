@@ -182,7 +182,10 @@ final class WeightEntry {
     var notes: String
     
     var pet: Pet?
-    
+
+    /// File-system path for an optional photo attached to this entry (Pro feature).
+    var photoPath: String?
+
     init(date: Date, weight: Double, unit: WeightUnit, notes: String = "") {
         self.id = UUID()
         self.date = date

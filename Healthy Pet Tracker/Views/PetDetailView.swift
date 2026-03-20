@@ -151,9 +151,13 @@ struct PetDetailView: View {
         }
         .sheet(isPresented: $showingAddWeight) {
             AddWeightView(pet: pet)
+                .environmentObject(EntitlementService.shared)
+                .environmentObject(StoreService.shared)
         }
         .sheet(item: $selectedEntry) { entry in
             EditWeightView(entry: entry)
+                .environmentObject(EntitlementService.shared)
+                .environmentObject(StoreService.shared)
         }
         .sheet(item: $csvExport) { exportData in
             ShareSheet(items: [exportData.data], fileName: exportData.fileName)
@@ -272,9 +276,20 @@ struct PetInfoCard: View {
 
 struct WeightEntryRow: View {
     let entry: WeightEntry
+    @State private var showingPhoto = false
 
     var body: some View {
-        HStack {
+        HStack(spacing: 10) {
+
+            // Thumbnail — only rendered when a photo exists
+            if let path = entry.photoPath, UIImage(contentsOfFile: path) != nil {
+                Button { showingPhoto = true } label: {
+                    EntryThumbnailView(path: path)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("View photo")
+            }
+
             VStack(alignment: .leading, spacing: 4) {
                 Text(entry.date.formatted(date: .abbreviated, time: .omitted))
                     .font(.headline)
@@ -298,13 +313,34 @@ struct WeightEntryRow: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(rowAccessibilityLabel)
         .accessibilityHint("Double-tap to edit")
+        .fullScreenCover(isPresented: $showingPhoto) {
+            if let path = entry.photoPath {
+                PhotoFullScreenView(imagePath: path)
+            }
+        }
     }
 
     private var rowAccessibilityLabel: String {
         let dateStr = entry.date.formatted(date: .abbreviated, time: .omitted)
         var parts = ["\(entry.displayWeight) on \(dateStr)"]
         if !entry.notes.isEmpty { parts.append(entry.notes) }
+        if entry.photoPath != nil { parts.append("Has photo") }
         return parts.joined(separator: ". ")
+    }
+}
+
+/// Small thumbnail used in WeightEntryRow.
+struct EntryThumbnailView: View {
+    let path: String
+
+    var body: some View {
+        if let uiImage = UIImage(contentsOfFile: path) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 44, height: 44)
+                .clipShape(RoundedRectangle(cornerRadius: 7))
+        }
     }
 }
 

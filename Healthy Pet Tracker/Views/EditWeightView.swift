@@ -9,7 +9,8 @@ import SwiftData
 struct EditWeightView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-    
+    @EnvironmentObject var entitlements: EntitlementService
+
     @Bindable var entry: WeightEntry
     
     @State private var weight: String
@@ -51,6 +52,19 @@ struct EditWeightView: View {
                 }
                 .themedSection()
                 
+                Section("Photo") {
+                    WeightEntryPhotoView(photoPath: $entry.photoPath)
+
+                    if entry.photoPath != nil {
+                        Button(role: .destructive) {
+                            removePhoto()
+                        } label: {
+                            Label("Remove Photo", systemImage: "trash")
+                        }
+                    }
+                }
+                .themedSection()
+
                 Section("Notes") {
                     TextField("Add notes about this weight entry", text: $notes, axis: .vertical)
                         .lineLimit(3...6)
@@ -131,9 +145,21 @@ struct EditWeightView: View {
     }
 
     private func deleteEntry() {
+        // Clean up photo file from disk before deleting the entry
+        if let path = entry.photoPath {
+            try? FileManager.default.removeItem(atPath: path)
+        }
         modelContext.delete(entry)
         HapticManager.shared.notification(.success)
         dismiss()
+    }
+
+    private func removePhoto() {
+        if let path = entry.photoPath {
+            try? FileManager.default.removeItem(atPath: path)
+        }
+        entry.photoPath = nil
+        HapticManager.shared.impact(.light)
     }
 
     private func configureNavigationBarAppearance() {

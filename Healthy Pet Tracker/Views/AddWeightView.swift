@@ -9,13 +9,15 @@ import SwiftData
 struct AddWeightView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-    
+    @EnvironmentObject var entitlements: EntitlementService
+
     let pet: Pet
-    
+
     @State private var weight = ""
     @State private var date = Date()
     @State private var selectedUnit: WeightUnit
     @State private var notes = ""
+    @State private var photoPath: String?
     @State private var showingError = false
     @State private var errorMessage = ""
     
@@ -47,6 +49,11 @@ struct AddWeightView: View {
                 }
                 .themedSection()
                 
+                Section("Photo (Optional)") {
+                    WeightEntryPhotoView(photoPath: $photoPath)
+                }
+                .themedSection()
+
                 Section("Notes (Optional)") {
                     TextField("Add notes about this weight entry", text: $notes, axis: .vertical)
                         .lineLimit(3...6)
@@ -113,6 +120,7 @@ struct AddWeightView: View {
             notes: notes.trimmingCharacters(in: .whitespaces)
         )
         newEntry.pet = pet
+        newEntry.photoPath = photoPath
         
         modelContext.insert(newEntry)
         
