@@ -13,7 +13,8 @@ struct PetWeightTrackerApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Pet.self,
-            WeightEntry.self
+            WeightEntry.self,
+            PetReminder.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         

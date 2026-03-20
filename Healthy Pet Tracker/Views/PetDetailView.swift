@@ -18,11 +18,13 @@ struct PetDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @EnvironmentObject var entitlements: EntitlementService
     @Bindable var pet: Pet
     @State private var showingAddWeight = false
     @State private var selectedEntry: WeightEntry?
     @State private var csvExport: CSVExportData?
     @State private var showingDeleteAlert = false
+    @State private var showingUpgrade = false
     
     var body: some View {
         List {
@@ -52,6 +54,42 @@ struct PetDetailView: View {
                 }
                 .themedSection()
                 
+                // MARK: - Reminders (Pro Feature)
+                Section("Reminders") {
+                    if entitlements.hasPremium {
+                        RemindersListView(pet: pet)
+                    } else {
+                        Button {
+                            showingUpgrade = true
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "bell.badge.fill")
+                                    .font(.system(size: 22))
+                                    .foregroundStyle(Color.accentMuted)
+                                    .frame(width: 28)
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Reminders")
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                        .primaryText()
+                                    Text("Upgrade to Pro for weight check-ins, vet alerts & more")
+                                        .font(.caption)
+                                        .tertiaryText()
+                                }
+
+                                Spacer()
+
+                                Image(systemName: "lock.fill")
+                                    .font(.caption)
+                                    .foregroundStyle(Color.accentMuted)
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
+                }
+                .themedSection()
+
                 Section("Weight History") {
                     ForEach(pet.sortedWeightEntries.reversed()) { entry in
                         WeightEntryRow(entry: entry)
@@ -119,6 +157,11 @@ struct PetDetailView: View {
         }
         .sheet(item: $csvExport) { exportData in
             ShareSheet(items: [exportData.data], fileName: exportData.fileName)
+        }
+        .sheet(isPresented: $showingUpgrade) {
+            UpgradeView()
+                .environmentObject(EntitlementService.shared)
+                .environmentObject(StoreService.shared)
         }
         .alert("Delete \(pet.name)?", isPresented: $showingDeleteAlert) {
             Button("Cancel", role: .cancel) { }

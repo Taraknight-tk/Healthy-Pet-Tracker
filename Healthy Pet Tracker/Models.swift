@@ -24,6 +24,9 @@ final class Pet {
     
     @Relationship(deleteRule: .cascade, inverse: \WeightEntry.pet)
     var weightEntries: [WeightEntry] = []
+
+    @Relationship(deleteRule: .cascade, inverse: \PetReminder.pet)
+    var reminders: [PetReminder] = []
     
     init(name: String, birthday: Date, species: String, initialWeight: Double, unit: WeightUnit) {
         self.id = UUID()
@@ -224,5 +227,150 @@ enum WeightUnit: String, Codable, CaseIterable {
         case .ounces: return "Ounces"
         case .grams: return "Grams"
         }
+    }
+}
+
+// MARK: - Reminders (Pro Feature)
+
+enum ReminderType: String, Codable, CaseIterable {
+    case weightLogging = "weight"
+    case vetAppointment = "vet"
+    case medication = "medication"
+    case custom = "custom"
+
+    var displayName: String {
+        switch self {
+        case .weightLogging:  return "Weight Check-In"
+        case .vetAppointment: return "Vet Appointment"
+        case .medication:     return "Medication"
+        case .custom:         return "Custom"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .weightLogging:  return "scalemass.fill"
+        case .vetAppointment: return "stethoscope"
+        case .medication:     return "pill.fill"
+        case .custom:         return "bell.fill"
+        }
+    }
+
+    /// Whether this type defaults to a one-time reminder (vet) vs recurring
+    var defaultsToOneTime: Bool {
+        self == .vetAppointment
+    }
+}
+
+enum ReminderFrequency: String, Codable, CaseIterable {
+    case once = "once"
+    case weekly = "weekly"
+    case monthly = "monthly"
+    case custom = "custom"
+
+    var displayName: String {
+        switch self {
+        case .once:    return "One Time"
+        case .weekly:  return "Weekly"
+        case .monthly: return "Monthly"
+        case .custom:  return "Custom Interval"
+        }
+    }
+}
+
+@Model
+final class PetReminder {
+    var id: UUID
+    var pet: Pet?
+
+    // What kind of reminder
+    var reminderType: ReminderType
+    var title: String
+    var notes: String
+
+    // Schedule
+    var frequency: ReminderFrequency
+    var dayOfWeek: Int?           // 1 = Sunday … 7 = Saturday (weekly)
+    var dayOfMonth: Int?          // 1–28 (monthly)
+    var customIntervalDays: Int?  // e.g. every 14 days (custom)
+    var timeOfDay: Date           // only the hour + minute matter
+    var specificDate: Date?       // full date for one-time reminders
+
+    var isEnabled: Bool
+    var createdAt: Date
+
+    init(
+        pet: Pet? = nil,
+        reminderType: ReminderType,
+        title: String,
+        notes: String = "",
+        frequency: ReminderFrequency,
+        dayOfWeek: Int? = nil,
+        dayOfMonth: Int? = nil,
+        customIntervalDays: Int? = nil,
+        timeOfDay: Date,
+        specificDate: Date? = nil,
+        isEnabled: Bool = true
+    ) {
+        self.id = UUID()
+        self.pet = pet
+        self.reminderType = reminderType
+        self.title = title
+        self.notes = notes
+        self.frequency = frequency
+        self.dayOfWeek = dayOfWeek
+        self.dayOfMonth = dayOfMonth
+        self.customIntervalDays = customIntervalDays
+        self.timeOfDay = timeOfDay
+        self.specificDate = specificDate
+        self.isEnabled = isEnabled
+        self.createdAt = Date()
+    }
+
+    /// Human-readable schedule summary, e.g. "Every Monday at 9:00 AM"
+    var scheduleDescription: String {
+        let timeStr = timeOfDay.formatted(date: .omitted, time: .shortened)
+
+        switch frequency {
+        case .once:
+            if let date = specificDate {
+                return "\(date.formatted(date: .abbreviated, time: .omitted)) at \(timeStr)"
+            }
+            return "One time at \(timeStr)"
+
+        case .weekly:
+            let weekdayName = dayOfWeek.flatMap { dayName(for: $0) } ?? "—"
+            return "Every \(weekdayName) at \(timeStr)"
+
+        case .monthly:
+            if let day = dayOfMonth {
+                return "\(ordinal(day)) of every month at \(timeStr)"
+            }
+            return "Monthly at \(timeStr)"
+
+        case .custom:
+            if let days = customIntervalDays {
+                return "Every \(days) day\(days == 1 ? "" : "s") at \(timeStr)"
+            }
+            return "Custom interval at \(timeStr)"
+        }
+    }
+
+    private func dayName(for weekday: Int) -> String {
+        let formatter = DateFormatter()
+        // weekdaySymbols: index 0 = Sunday
+        guard weekday >= 1, weekday <= 7 else { return "—" }
+        return formatter.weekdaySymbols[weekday - 1]
+    }
+
+    private func ordinal(_ n: Int) -> String {
+        let suffix: String
+        switch n {
+        case 1, 21: suffix = "st"
+        case 2, 22: suffix = "nd"
+        case 3, 23: suffix = "rd"
+        default:    suffix = "th"
+        }
+        return "\(n)\(suffix)"
     }
 }
