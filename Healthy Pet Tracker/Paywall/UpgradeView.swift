@@ -137,6 +137,7 @@ struct UpgradeView: View {
     private var purchaseSection: some View {
         VStack(spacing: 12) {
             if let product = store.products.first {
+                // Products loaded — show purchase button
                 Button {
                     Task { await store.purchase(product) }
                 } label: {
@@ -155,15 +156,40 @@ struct UpgradeView: View {
                     .cornerRadius(12)
                 }
                 .disabled(isPurchasing)
+
+            } else if store.productsLoadFailed {
+                // Load failed — show a retry button so the user isn't stuck
+                VStack(spacing: 8) {
+                    Text("Couldn't load pricing information.")
+                        .font(.subheadline)
+                        .secondaryText()
+                        .multilineTextAlignment(.center)
+                    Button {
+                        Task { await store.loadProducts() }
+                    } label: {
+                        Text("Try Again")
+                            .font(.headline)
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.accentPrimary)
+                            .cornerRadius(12)
+                    }
+                }
+
             } else {
-                // Products not yet loaded — show a disabled placeholder
-                Text("Loading…")
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.accentMuted)
-                    .cornerRadius(12)
+                // Still loading — show a spinner, never an indefinite disabled button
+                HStack(spacing: 10) {
+                    ProgressView()
+                        .tint(.white)
+                    Text("Loading…")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color.accentMuted)
+                .cornerRadius(12)
             }
 
             Button {

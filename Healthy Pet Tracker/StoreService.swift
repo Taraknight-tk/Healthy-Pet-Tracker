@@ -14,6 +14,8 @@ class StoreService: ObservableObject {
     
     @Published private(set) var products: [Product] = []
     @Published private(set) var purchaseState: PurchaseState = .idle
+    @Published private(set) var isLoadingProducts: Bool = false
+    @Published private(set) var productsLoadFailed: Bool = false
     
     // Matches the Non-Consumable product created in App Store Connect
     private let productIDs = [
@@ -33,22 +35,29 @@ class StoreService: ObservableObject {
     /// Retries up to 3 times with a short delay because the local StoreKit
     /// service can return empty on the first call while it initialises.
     func loadProducts() async {
+        guard !isLoadingProducts else { return }
+        isLoadingProducts = true
+        productsLoadFailed = false
+
         for attempt in 1...3 {
             do {
                 let loaded = try await Product.products(for: productIDs)
                 if !loaded.isEmpty {
                     products = loaded
+                    isLoadingProducts = false
                     return
                 }
                 print("StoreKit returned no products on attempt \(attempt) — retrying…")
             } catch {
                 print("StoreKit load error on attempt \(attempt): \(error)")
             }
-            // Wait before the next attempt (no delay after the last one)
             if attempt < 3 {
                 try? await Task.sleep(for: .seconds(1))
             }
         }
+
+        isLoadingProducts = false
+        productsLoadFailed = true
         print("StoreKit: could not load products after 3 attempts.")
     }
     
