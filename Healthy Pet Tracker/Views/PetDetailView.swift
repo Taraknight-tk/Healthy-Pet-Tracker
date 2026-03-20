@@ -6,6 +6,7 @@
 import SwiftUI
 import SwiftData
 import Charts
+import PhotosUI
 
 struct CSVExportData: Identifiable {
     let id = UUID()
@@ -165,11 +166,8 @@ struct PetInfoCard: View {
                 }
                 
                 Spacer()
-                
-                Image(systemName: speciesIcon(for: pet.species))
-                    .font(.system(size: 50))
-                    .foregroundStyle(Color.accentPrimary)
-                    .accessibilityHidden(true)
+
+                PetPhotoView(pet: pet)
             }
             
             if let latest = pet.latestWeight {
@@ -227,17 +225,6 @@ struct PetInfoCard: View {
         .padding()
     }
     
-    private func speciesIcon(for species: String) -> String {
-        switch species.lowercased() {
-        case "dog": return "dog.fill"
-        case "cat": return "cat.fill"
-        case "rabbit": return "hare.fill"
-        case "bird": return "bird.fill"
-        case "fish": return "fish.fill"
-        case "tortoise", "turtle", "reptile": return "tortoise.fill"
-        default: return "pawprint.fill"
-        }
-    }
 }
 
 struct WeightEntryRow: View {

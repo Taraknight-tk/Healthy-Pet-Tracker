@@ -16,6 +16,11 @@ final class Pet {
     var preferredUnit: WeightUnit
     var targetWeight: Double?
     var targetWeightUnit: WeightUnit?
+
+    /// File-system path for the pet's custom profile photo (Pro feature).
+    /// Stored as a path string rather than raw data to keep the SwiftData
+    /// store small; the actual JPEG lives in the app's Documents/pet_photos/ folder.
+    var photoPath: String?
     
     @Relationship(deleteRule: .cascade, inverse: \WeightEntry.pet)
     var weightEntries: [WeightEntry] = []
