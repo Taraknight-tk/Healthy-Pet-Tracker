@@ -90,6 +90,12 @@ struct PetDetailView: View {
                 }
                 .themedSection()
 
+                // MARK: - Breed Insights (Pro Feature)
+                Section("Breed Insights") {
+                    BreedInsightView(pet: pet)
+                }
+                .themedSection()
+
                 Section("Weight History") {
                     ForEach(pet.sortedWeightEntries.reversed()) { entry in
                         WeightEntryRow(entry: entry)

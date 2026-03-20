@@ -17,6 +17,13 @@ final class Pet {
     var targetWeight: Double?
     var targetWeightUnit: WeightUnit?
 
+    /// Breed name matched against breed_weights.json (e.g. "Golden Retriever").
+    /// nil means unknown / not set.
+    var breed: String?
+
+    /// Biological sex, used for sex-specific healthy weight ranges.
+    var sex: PetSex?
+
     /// File-system path for the pet's custom profile photo (Pro feature).
     /// Stored as a path string rather than raw data to keep the SwiftData
     /// store small; the actual JPEG lives in the app's Documents/pet_photos/ folder.
@@ -229,6 +236,27 @@ enum WeightUnit: String, Codable, CaseIterable {
         case .kilograms: return "Kilograms"
         case .ounces: return "Ounces"
         case .grams: return "Grams"
+        }
+    }
+}
+
+// MARK: - Pet Sex
+
+enum PetSex: String, Codable, CaseIterable {
+    case male   = "male"
+    case female = "female"
+
+    var displayName: String {
+        switch self {
+        case .male:   return "Male"
+        case .female: return "Female"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .male:   return "♂"
+        case .female: return "♀"
         }
     }
 }
