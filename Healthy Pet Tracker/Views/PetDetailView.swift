@@ -228,23 +228,99 @@ struct PetDetailView: View {
 struct PetInfoCard: View {
     @Bindable var pet: Pet
 
+    // Inline name editing
+    @State private var isEditingName = false
+    @State private var draftName = ""
+
+    // Inline birthday editing
+    @State private var isEditingBirthday = false
+    @State private var draftBirthday = Date()
+
     var body: some View {
         VStack(spacing: 12) {
-            HStack {
+            HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(pet.species)
                         .font(.subheadline)
                         .secondaryText()
-                    Text(pet.name)
-                        .font(.title)
-                        .fontWeight(.bold)
-                        .primaryText()
-                    Text("Born \(pet.birthday.formatted(date: .long, time: .omitted))")
-                        .font(.subheadline)
-                        .secondaryText()
-                    Text(pet.ageString)
-                        .font(.subheadline)
-                        .secondaryText()
+
+                    // ── Inline name ──────────────────────────────────────
+                    if isEditingName {
+                        HStack(spacing: 6) {
+                            TextField("Pet name", text: $draftName)
+                                .font(.title)
+                                .fontWeight(.bold)
+                                .primaryText()
+                                .textFieldStyle(.plain)
+                                .submitLabel(.done)
+                                .onSubmit { commitName() }
+                            Button(action: commitName) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(Color.accentPrimary)
+                                    .font(.title3)
+                            }
+                            .accessibilityLabel("Save name")
+                        }
+                    } else {
+                        HStack(spacing: 5) {
+                            Text(pet.name)
+                                .font(.title)
+                                .fontWeight(.bold)
+                                .primaryText()
+                            Image(systemName: "pencil")
+                                .font(.caption)
+                                .foregroundStyle(Color.accentMuted)
+                                .accessibilityHidden(true)
+                        }
+                        .onTapGesture {
+                            draftName = pet.name
+                            isEditingBirthday = false
+                            isEditingName = true
+                        }
+                        .accessibilityLabel("\(pet.name). Tap to rename")
+                    }
+
+                    // ── Inline birthday ──────────────────────────────────
+                    if isEditingBirthday {
+                        VStack(alignment: .leading, spacing: 4) {
+                            DatePicker(
+                                "Birthday",
+                                selection: $draftBirthday,
+                                in: ...Date(),
+                                displayedComponents: .date
+                            )
+                            .labelsHidden()
+                            .datePickerStyle(.compact)
+                            .tint(.accentPrimary)
+
+                            Button("Done") { commitBirthday() }
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .tint(.accentPrimary)
+                        }
+                    } else {
+                        HStack(spacing: 5) {
+                            Text("Born \(pet.birthday.formatted(date: .long, time: .omitted))")
+                                .font(.subheadline)
+                                .secondaryText()
+                            Image(systemName: "pencil")
+                                .font(.caption2)
+                                .foregroundStyle(Color.accentMuted)
+                                .accessibilityHidden(true)
+                        }
+                        .onTapGesture {
+                            draftBirthday = pet.birthday
+                            isEditingName = false
+                            isEditingBirthday = true
+                        }
+                        .accessibilityLabel("Born \(pet.birthday.formatted(date: .long, time: .omitted)). Tap to edit birthday")
+                    }
+
+                    if !isEditingBirthday {
+                        Text(pet.ageString)
+                            .font(.subheadline)
+                            .secondaryText()
+                    }
                 }
 
                 Spacer()
@@ -305,6 +381,29 @@ struct PetInfoCard: View {
                 .stroke(Color.borderSubtle, lineWidth: 1)
         )
         .padding()
+        // Dismiss both editors if user taps elsewhere in the card
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if isEditingName { commitName() }
+            if isEditingBirthday { commitBirthday() }
+        }
+    }
+
+    // MARK: - Commit helpers
+
+    private func commitName() {
+        let trimmed = draftName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty {
+            pet.name = trimmed
+        }
+        isEditingName = false
+        HapticManager.shared.impact(.light)
+    }
+
+    private func commitBirthday() {
+        pet.birthday = draftBirthday
+        isEditingBirthday = false
+        HapticManager.shared.impact(.light)
     }
 }
 
