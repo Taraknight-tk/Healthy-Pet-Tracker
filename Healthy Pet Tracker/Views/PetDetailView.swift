@@ -22,27 +22,59 @@ struct CSVExportData: Identifiable {
     let fileName: String
 }
 
+// MARK: - Timeline item (weight entry or note — merged + sorted by date)
+
+enum TimelineItem: Identifiable {
+    case weight(WeightEntry)
+    case note(PetNote)
+
+    var id: UUID {
+        switch self {
+        case .weight(let e): return e.id
+        case .note(let n):   return n.id
+        }
+    }
+    var date: Date {
+        switch self {
+        case .weight(let e): return e.date
+        case .note(let n):   return n.date
+        }
+    }
+}
+
 struct PetDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @EnvironmentObject var entitlements: EntitlementService
     @Bindable var pet: Pet
-    @State private var showingAddWeight = false
+
+    @State private var showingAddWeight  = false
+    @State private var showingAddNote    = false
     @State private var selectedEntry: WeightEntry?
+    @State private var editingNote: PetNote?
     @State private var csvExport: CSVExportData?
     @State private var showingDeleteAlert = false
-    @State private var showingUpgrade = false
+    @State private var showingUpgrade     = false
+
+    // Merged, newest-first timeline
+    private var timelineItems: [TimelineItem] {
+        let weights = pet.sortedWeightEntries.map { TimelineItem.weight($0) }
+        let notes   = pet.notes.map             { TimelineItem.note($0) }
+        return (weights + notes).sorted { $0.date > $1.date }
+    }
 
     var body: some View {
         ScrollViewReader { proxy in
             List {
+                // ── Pet info card ─────────────────────────────────────────
                 Section {
                     PetInfoCard(pet: pet)
                 }
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
 
+                // ── Weight-specific sections (only when entries exist) ─────
                 if !pet.sortedWeightEntries.isEmpty {
                     Section {
                         WeightGoalCard(pet: pet)
@@ -54,13 +86,11 @@ struct PetDetailView: View {
                         WeightStatsCard(
                             pet: pet,
                             onTrendTap: {
-                                // Trend chip tapped → scroll to chart
                                 withAnimation(.easeInOut(duration: 0.35)) {
                                     proxy.scrollTo(ScrollID.chart, anchor: .top)
                                 }
                             },
                             onEntriesTap: {
-                                // Entries chip tapped → scroll to weight history
                                 withAnimation(.easeInOut(duration: 0.35)) {
                                     proxy.scrollTo(ScrollID.history, anchor: .top)
                                 }
@@ -72,42 +102,36 @@ struct PetDetailView: View {
                     .id(ScrollID.stats)
 
                     Section("Weight Chart") {
-                        WeightChartView(entries: pet.sortedWeightEntries, unit: pet.preferredUnit)
-                            .frame(height: 250)
-                            .padding(.vertical, 8)
+                        WeightChartView(
+                            entries: pet.sortedWeightEntries,
+                            unit: pet.preferredUnit,
+                            notes: pet.notes
+                        )
+                        .frame(height: 250)
+                        .padding(.vertical, 8)
                     }
                     .themedSection()
                     .id(ScrollID.chart)
 
-                    // MARK: - Reminders (Pro Feature)
+                    // Reminders (Pro)
                     Section("Reminders") {
                         if entitlements.hasPremium {
                             RemindersListView(pet: pet)
                         } else {
-                            Button {
-                                showingUpgrade = true
-                            } label: {
+                            Button { showingUpgrade = true } label: {
                                 HStack(spacing: 12) {
                                     Image(systemName: "bell.badge.fill")
                                         .font(.system(size: 22))
                                         .foregroundStyle(Color.accentMuted)
                                         .frame(width: 28)
-
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text("Reminders")
-                                            .font(.subheadline)
-                                            .fontWeight(.medium)
-                                            .primaryText()
+                                            .font(.subheadline).fontWeight(.medium).primaryText()
                                         Text("Upgrade to Pro for weight check-ins, vet alerts & more")
-                                            .font(.caption)
-                                            .tertiaryText()
+                                            .font(.caption).tertiaryText()
                                     }
-
                                     Spacer()
-
-                                    Image(systemName: "lock.fill")
-                                        .font(.caption)
-                                        .foregroundStyle(Color.accentMuted)
+                                    Image(systemName: "lock.fill").font(.caption).foregroundStyle(Color.accentMuted)
                                 }
                                 .padding(.vertical, 4)
                             }
@@ -115,33 +139,46 @@ struct PetDetailView: View {
                     }
                     .themedSection()
 
-                    // MARK: - Breed Insights (Pro Feature)
+                    // Breed Insights (Pro)
                     Section("Breed Insights") {
                         BreedInsightView(pet: pet)
                     }
                     .themedSection()
+                }
 
-                    Section("Weight History") {
-                        ForEach(pet.sortedWeightEntries.reversed()) { entry in
-                            WeightEntryRow(entry: entry)
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    selectedEntry = entry
-                                }
+                // ── Activity log (weight entries + notes merged) ──────────
+                if !timelineItems.isEmpty {
+                    Section("Activity Log") {
+                        ForEach(timelineItems) { item in
+                            switch item {
+                            case .weight(let entry):
+                                WeightEntryRow(entry: entry)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture { selectedEntry = entry }
+                            case .note(let note):
+                                PetNoteRow(note: note)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture { editingNote = note }
+                            }
                         }
-                        .onDelete(perform: deleteEntries)
+                        .onDelete(perform: deleteTimelineItems)
                     }
                     .themedSection()
                     .id(ScrollID.history)
-
                 } else {
                     Section {
-                        Text("No weight entries yet. Add your first weight entry to start tracking!")
+                        Text("No entries yet. Tap + to add a weight entry or a note.")
                             .secondaryText()
                             .padding()
                     }
                     .themedSection()
                 }
+
+                // ── Documents (Pro) ───────────────────────────────────────
+                Section("Documents") {
+                    DocumentsSection(pet: pet)
+                }
+                .themedSection()
             }
             .scrollContentBackground(.hidden)
             .background(Color.bgPrimary)
@@ -152,17 +189,18 @@ struct PetDetailView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Button(action: { showingAddWeight = true }) {
-                            Label("Add Weight", systemImage: "plus")
+                            Label("Add Weight Entry", systemImage: "scalemass")
+                        }
+                        Button(action: { showingAddNote = true }) {
+                            Label("Add Note / Milestone", systemImage: "note.text.badge.plus")
                         }
 
                         if !pet.sortedWeightEntries.isEmpty {
+                            Divider()
                             Button(action: {
                                 let csvString = DataExporter.exportToCSV(pet: pet)
                                 if let data = csvString.data(using: .utf8) {
-                                    csvExport = CSVExportData(
-                                        data: data,
-                                        fileName: "\(pet.name)_weight_data.csv"
-                                    )
+                                    csvExport = CSVExportData(data: data, fileName: "\(pet.name)_weight_data.csv")
                                 }
                             }) {
                                 Label("Export Data", systemImage: "square.and.arrow.up")
@@ -170,7 +208,6 @@ struct PetDetailView: View {
                         }
 
                         Divider()
-
                         Button(role: .destructive, action: { showingDeleteAlert = true }) {
                             Label("Delete Pet", systemImage: "trash")
                         }
@@ -187,8 +224,18 @@ struct PetDetailView: View {
                 .environmentObject(EntitlementService.shared)
                 .environmentObject(StoreService.shared)
         }
+        .sheet(isPresented: $showingAddNote) {
+            AddNoteView(pet: pet)
+                .environmentObject(EntitlementService.shared)
+                .environmentObject(StoreService.shared)
+        }
         .sheet(item: $selectedEntry) { entry in
             EditWeightView(entry: entry)
+                .environmentObject(EntitlementService.shared)
+                .environmentObject(StoreService.shared)
+        }
+        .sheet(item: $editingNote) { note in
+            AddNoteView(pet: pet, existingNote: note)
                 .environmentObject(EntitlementService.shared)
                 .environmentObject(StoreService.shared)
         }
@@ -211,15 +258,86 @@ struct PetDetailView: View {
         }
     }
 
-    private func deleteEntries(offsets: IndexSet) {
+    // MARK: - Delete helpers
+
+    private func deleteTimelineItems(_ offsets: IndexSet) {
         withAnimation(reduceMotion ? nil : .default) {
-            let sortedEntries = pet.sortedWeightEntries.reversed()
             for index in offsets {
-                let entry = Array(sortedEntries)[index]
-                modelContext.delete(entry)
+                switch timelineItems[index] {
+                case .weight(let entry): modelContext.delete(entry)
+                case .note(let note):   modelContext.delete(note)
+                }
             }
         }
         HapticManager.shared.notification(.success)
+    }
+}
+
+// MARK: - Pet Note Row
+
+struct PetNoteRow: View {
+    let note: PetNote
+    @State private var showingPhoto = false
+
+    var body: some View {
+        HStack(spacing: 10) {
+            // Type icon
+            Image(systemName: note.noteType.icon)
+                .font(.system(size: 18))
+                .foregroundStyle(note.noteType.color)
+                .frame(width: 28)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Text(note.date.formatted(date: .abbreviated, time: .omitted))
+                        .font(.headline)
+                        .primaryText()
+                    Text(note.noteType.displayName)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundStyle(note.noteType.color)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(note.noteType.color.opacity(0.12))
+                        .clipShape(Capsule())
+                }
+                if !note.noteText.isEmpty {
+                    Text(note.noteText)
+                        .font(.subheadline)
+                        .secondaryText()
+                        .lineLimit(2)
+                }
+            }
+
+            Spacer()
+
+            // Photo thumbnail
+            if let path = note.photoPath, UIImage(contentsOfFile: path) != nil {
+                Button { showingPhoto = true } label: {
+                    EntryThumbnailView(path: path)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("View photo")
+            }
+        }
+        .padding(.vertical, 4)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(rowAccessibilityLabel)
+        .accessibilityHint("Double-tap to edit")
+        .fullScreenCover(isPresented: $showingPhoto) {
+            if let path = note.photoPath {
+                PhotoFullScreenView(imagePath: path)
+            }
+        }
+    }
+
+    private var rowAccessibilityLabel: String {
+        let dateStr = note.date.formatted(date: .abbreviated, time: .omitted)
+        var parts = ["\(note.noteType.displayName) on \(dateStr)"]
+        if !note.noteText.isEmpty { parts.append(note.noteText) }
+        if note.photoPath != nil  { parts.append("Has photo") }
+        return parts.joined(separator: ". ")
     }
 }
 

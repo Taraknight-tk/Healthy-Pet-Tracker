@@ -32,6 +32,12 @@ final class Pet {
     @Relationship(deleteRule: .cascade, inverse: \WeightEntry.pet)
     var weightEntries: [WeightEntry] = []
 
+    @Relationship(deleteRule: .cascade, inverse: \PetNote.pet)
+    var notes: [PetNote] = []
+
+    @Relationship(deleteRule: .cascade, inverse: \PetDocument.pet)
+    var documents: [PetDocument] = []
+
     @Relationship(deleteRule: .cascade, inverse: \PetReminder.pet)
     var reminders: [PetReminder] = []
     
@@ -258,6 +264,107 @@ enum PetSex: String, Codable, CaseIterable {
         case .male:   return "♂"
         case .female: return "♀"
         }
+    }
+}
+
+// MARK: - Notes / Milestones
+
+enum NoteType: String, Codable, CaseIterable {
+    case general    = "general"
+    case vetVisit   = "vetVisit"
+    case milestone  = "milestone"
+    case grooming   = "grooming"
+    case medication = "medication"
+    case photoOnly  = "photoOnly"
+
+    var displayName: String {
+        switch self {
+        case .general:    return "Note"
+        case .vetVisit:   return "Vet Visit"
+        case .milestone:  return "Milestone"
+        case .grooming:   return "Grooming"
+        case .medication: return "Medication"
+        case .photoOnly:  return "Photo"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .general:    return "note.text"
+        case .vetVisit:   return "stethoscope"
+        case .milestone:  return "star.fill"
+        case .grooming:   return "scissors"
+        case .medication: return "pill.fill"
+        case .photoOnly:  return "camera.fill"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .general:    return .accentPrimary
+        case .vetVisit:   return .blue
+        case .milestone:  return .orange
+        case .grooming:   return .purple
+        case .medication: return .red
+        case .photoOnly:  return .accentActive
+        }
+    }
+}
+
+@Model
+final class PetNote {
+    var id: UUID
+    var date: Date
+    var noteText: String
+    var noteType: NoteType
+    /// Optional photo (Pro feature — same pattern as WeightEntry.photoPath).
+    var photoPath: String?
+    var pet: Pet?
+
+    init(date: Date = Date(), noteText: String = "", noteType: NoteType = .general) {
+        self.id = UUID()
+        self.date = date
+        self.noteText = noteText
+        self.noteType = noteType
+    }
+}
+
+// MARK: - Documents (Pro Feature)
+
+enum DocFileType: String, Codable {
+    case pdf   = "pdf"
+    case image = "image"
+
+    var icon: String {
+        switch self {
+        case .pdf:   return "doc.fill"
+        case .image: return "photo.fill"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .pdf:   return .red
+        case .image: return .accentPrimary
+        }
+    }
+}
+
+@Model
+final class PetDocument {
+    var id: UUID
+    var title: String
+    var filePath: String
+    var fileType: DocFileType
+    var dateAdded: Date
+    var pet: Pet?
+
+    init(title: String, filePath: String, fileType: DocFileType) {
+        self.id = UUID()
+        self.title = title
+        self.filePath = filePath
+        self.fileType = fileType
+        self.dateAdded = Date()
     }
 }
 

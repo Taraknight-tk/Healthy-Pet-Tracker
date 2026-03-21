@@ -9,6 +9,8 @@ import Charts
 struct WeightChartView: View {
     let entries: [WeightEntry]
     let unit: WeightUnit
+    /// Optional note/milestone events to show as pins on the chart.
+    var notes: [PetNote] = []
     
     @State private var selectedRange: DateRange = .all
     @State private var selectedDate: Date?
@@ -99,6 +101,14 @@ struct WeightChartView: View {
         return lower...upper
     }
     
+    /// Notes that fall within the currently visible date range.
+    private var filteredNotes: [PetNote] {
+        guard !notes.isEmpty, !filteredAndConvertedData.isEmpty else { return [] }
+        let minDate = filteredAndConvertedData.map { $0.date }.min() ?? .distantPast
+        let maxDate = filteredAndConvertedData.map { $0.date }.max() ?? .distantFuture
+        return notes.filter { $0.date >= minDate && $0.date <= maxDate }
+    }
+
     // Total months spanned by the currently visible data
     private var dataSpanMonths: Int {
         let dates = filteredAndConvertedData.map { $0.date }
@@ -203,39 +213,62 @@ struct WeightChartView: View {
                         .cornerRadius(8)
                     }
                     
-                    Chart(filteredAndConvertedData) { dataPoint in
-                        LineMark(
-                            x: .value("Date", dataPoint.date),
-                            y: .value("Weight", dataPoint.weight)
-                        )
-                        .foregroundStyle(Color.accentPrimary)
-                        .interpolationMethod(.catmullRom)
-                        
-                        PointMark(
-                            x: .value("Date", dataPoint.date),
-                            y: .value("Weight", dataPoint.weight)
-                        )
-                        .foregroundStyle(Color.accentActive)
-                        .symbolSize(60)
-                        
-                        AreaMark(
-                            x: .value("Date", dataPoint.date),
-                            y: .value("Weight", dataPoint.weight)
-                        )
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [Color.accentPrimary.opacity(0.3), Color.accentMuted.opacity(0.1)],
-                                startPoint: .top,
-                                endPoint: .bottom
+                    let minDate = filteredAndConvertedData.map { $0.date }.min() ?? Date()
+                    let maxDate = filteredAndConvertedData.map { $0.date }.max() ?? Date()
+                    let yDomain = weightRange
+                    let xDomain = minDate...maxDate
+                    let chartData = filteredAndConvertedData
+                    let notesInRange = filteredNotes
+                    
+                    Chart {
+                        ForEach(chartData) { dataPoint in
+                            LineMark(
+                                x: .value("Date", dataPoint.date),
+                                y: .value("Weight", dataPoint.weight)
                             )
-                        )
-                        .interpolationMethod(.catmullRom)
+                            .foregroundStyle(Color.accentPrimary)
+                            .interpolationMethod(.catmullRom)
+                            
+                            PointMark(
+                                x: .value("Date", dataPoint.date),
+                                y: .value("Weight", dataPoint.weight)
+                            )
+                            .foregroundStyle(Color.accentActive)
+                            .symbolSize(60)
+                            
+                            AreaMark(
+                                x: .value("Date", dataPoint.date),
+                                y: .value("Weight", dataPoint.weight)
+                            )
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [Color.accentPrimary.opacity(0.3), Color.accentMuted.opacity(0.1)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                            .interpolationMethod(.catmullRom)
+                        }
+                        
+                        // Note / milestone pins
+                        ForEach(notesInRange) { note in
+                            RuleMark(x: .value("Note", note.date))
+                                .foregroundStyle(note.noteType.color.opacity(0.55))
+                                .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+                                .annotation(position: .top, alignment: .center, spacing: 2) {
+                                    Image(systemName: note.noteType.icon)
+                                        .font(.system(size: 9, weight: .semibold))
+                                        .foregroundStyle(note.noteType.color)
+                                        .accessibilityLabel(note.noteType.displayName)
+                                }
+                                .accessibilityLabel("\(note.noteType.displayName) on \(note.date.formatted(date: .abbreviated, time: .omitted))")
+                        }
                     }
-                    .chartYScale(domain: weightRange)
-                    .chartXScale(domain: (filteredAndConvertedData.map { $0.date }.min() ?? Date())...(filteredAndConvertedData.map { $0.date }.max() ?? Date()))
+                    .chartYScale(domain: yDomain)
+                    .chartXScale(domain: xDomain)
                     .chartXSelection(value: $selectedDate)
                     .accessibilityChartDescriptor(WeightChartDescriptor(
-                        data: filteredAndConvertedData,
+                        data: chartData,
                         unit: unit,
                         rangeTitle: selectedRange.title
                     ))
@@ -258,7 +291,6 @@ struct WeightChartView: View {
                                 if let date = value.as(Date.self) {
                                     switch selectedRange {
                                     case .all where dataSpanMonths > 24:
-                                        // Many years of data — just show the year
                                         Text(date, format: .dateTime.year())
                                             .font(.caption)
                                             .foregroundStyle(.secondary)

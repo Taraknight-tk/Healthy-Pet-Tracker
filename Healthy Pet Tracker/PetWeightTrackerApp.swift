@@ -14,6 +14,8 @@ struct PetWeightTrackerApp: App {
         let schema = Schema([
             Pet.self,
             WeightEntry.self,
+            PetNote.self,
+            PetDocument.self,
             PetReminder.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
