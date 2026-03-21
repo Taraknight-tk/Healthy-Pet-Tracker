@@ -114,7 +114,7 @@ final class Pet {
         if let first = recentEntries.first, let last = recentEntries.last {
             let change = ((last.weightInKg - first.weightInKg) / first.weightInKg) * 100
             
-            if abs(change) < 2.0 {
+            if abs(change) < 0.5 {
                 return .stable
             } else if change > 0 {
                 return .gaining

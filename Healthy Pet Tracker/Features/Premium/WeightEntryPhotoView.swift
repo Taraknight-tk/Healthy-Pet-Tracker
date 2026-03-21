@@ -6,9 +6,10 @@
 //  Uses a Binding<String?> so it works in both AddWeightView (State-backed)
 //  and EditWeightView (@Bindable entry.photoPath).
 //
-//  Pro users: tapping the badge opens PhotosPicker. The image is resized and
-//  saved to Documents/entry_photos/. Selecting a new photo replaces the old file.
-//  Free users: tapping the lock badge opens UpgradeView.
+//  Pro users: tapping the photo thumbnail shows a confirmation dialog for
+//  Camera or Photo Library. Free users: tapping shows UpgradeView.
+//
+//  Tap target is limited to the thumbnail square via a transparent overlay.
 //
 
 import SwiftUI
@@ -21,6 +22,9 @@ struct WeightEntryPhotoView: View {
 
     @State private var selectedItem: PhotosPickerItem?
     @State private var showUpgrade = false
+    @State private var showSourcePicker = false
+    @State private var showCamera = false
+    @State private var showLibraryPicker = false
 
     private let size: CGFloat = 64
 
@@ -28,7 +32,54 @@ struct WeightEntryPhotoView: View {
         HStack(spacing: 16) {
             ZStack(alignment: .bottomTrailing) {
                 photoArea
-                badgeButton
+                badgeDecoration
+            }
+            // ── Precise tap target: only the thumbnail square ────────────────
+            .overlay(alignment: .center) {
+                Color.clear
+                    .frame(width: size, height: size)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        if entitlements.hasPremium {
+                            showSourcePicker = true
+                        } else {
+                            showUpgrade = true
+                        }
+                    }
+            }
+            // ── Source selection ─────────────────────────────────────────────
+            .confirmationDialog(
+                photoPath != nil ? "Change Photo" : "Add Photo",
+                isPresented: $showSourcePicker,
+                titleVisibility: .visible
+            ) {
+                if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                    Button("Take Photo") { showCamera = true }
+                }
+                Button("Choose from Library") { showLibraryPicker = true }
+                Button("Cancel", role: .cancel) { }
+            }
+            // ── Photo library picker ─────────────────────────────────────────
+            .photosPicker(isPresented: $showLibraryPicker, selection: $selectedItem, matching: .images)
+            .onChange(of: selectedItem) { _, item in
+                guard let item else { return }
+                Task { await loadAndSaveFromPicker(item) }
+            }
+            // ── Camera picker ────────────────────────────────────────────────
+            .fullScreenCover(isPresented: $showCamera) {
+                CameraPickerView(
+                    onCapture: { image in
+                        Task { await savePhoto(image) }
+                    },
+                    onDismiss: { showCamera = false }
+                )
+                .ignoresSafeArea()
+            }
+            // ── Upgrade sheet ────────────────────────────────────────────────
+            .sheet(isPresented: $showUpgrade) {
+                UpgradeView()
+                    .environmentObject(EntitlementService.shared)
+                    .environmentObject(StoreService.shared)
             }
 
             VStack(alignment: .leading, spacing: 3) {
@@ -45,18 +96,9 @@ struct WeightEntryPhotoView: View {
             Spacer()
         }
         .padding(.vertical, 4)
-        .sheet(isPresented: $showUpgrade) {
-            UpgradeView()
-                .environmentObject(EntitlementService.shared)
-                .environmentObject(StoreService.shared)
-        }
-        .onChange(of: selectedItem) { _, item in
-            guard let item else { return }
-            Task { await loadAndSavePhoto(from: item) }
-        }
     }
 
-    // MARK: - Photo area
+    // MARK: - Photo area (visual only)
 
     @ViewBuilder
     private var photoArea: some View {
@@ -89,27 +131,19 @@ struct WeightEntryPhotoView: View {
         }
     }
 
-    // MARK: - Badge button
+    // MARK: - Badge decoration (visual only — tap handled by overlay)
 
-    @ViewBuilder
-    private var badgeButton: some View {
+    private var badgeDecoration: some View {
+        let systemName: String
+        let color: Color
         if entitlements.hasPremium {
-            PhotosPicker(selection: $selectedItem, matching: .images) {
-                badgeIcon(
-                    systemName: photoPath != nil ? "pencil.circle.fill" : "plus.circle.fill"
-                )
-            }
-            .accessibilityLabel(photoPath != nil ? "Change photo" : "Add photo")
+            systemName = photoPath != nil ? "pencil.circle.fill" : "camera.circle.fill"
+            color = Color.accentPrimary
         } else {
-            Button { showUpgrade = true } label: {
-                badgeIcon(systemName: "lock.circle.fill", color: Color.accentMuted)
-            }
-            .accessibilityLabel("Upgrade to Pro to add entry photos")
+            systemName = "lock.circle.fill"
+            color = Color.accentMuted
         }
-    }
-
-    private func badgeIcon(systemName: String, color: Color = Color.accentPrimary) -> some View {
-        Image(systemName: systemName)
+        return Image(systemName: systemName)
             .symbolRenderingMode(.palette)
             .foregroundStyle(.white, color)
             .font(.system(size: 20))
@@ -118,22 +152,27 @@ struct WeightEntryPhotoView: View {
                     .fill(Color.bgPrimary)
                     .frame(width: 16, height: 16)
             )
+            .allowsHitTesting(false)
     }
 
     // MARK: - Photo handling
 
-    private func loadAndSavePhoto(from item: PhotosPickerItem) async {
+    private func loadAndSaveFromPicker(_ item: PhotosPickerItem) async {
         guard let data = try? await item.loadTransferable(type: Data.self),
               let original = UIImage(data: data) else { return }
+        await savePhoto(original)
+        selectedItem = nil
+    }
 
-        let resized = downscaled(original, maxDimension: 600)
+    private func savePhoto(_ image: UIImage) async {
+        let resized = downscaled(image, maxDimension: 600)
         guard let jpegData = resized.jpegData(compressionQuality: 0.8) else { return }
 
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let dir = docs.appendingPathComponent("entry_photos", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
 
-        // Remove previous file for this entry before writing a new one
+        // Remove previous file before writing a new one
         if let oldPath = photoPath {
             try? FileManager.default.removeItem(atPath: oldPath)
         }
@@ -141,8 +180,9 @@ struct WeightEntryPhotoView: View {
         let fileURL = dir.appendingPathComponent("entry_\(UUID().uuidString).jpg")
         try? jpegData.write(to: fileURL)
 
-        photoPath = fileURL.path
-        selectedItem = nil
+        await MainActor.run {
+            photoPath = fileURL.path
+        }
     }
 
     private func downscaled(_ image: UIImage, maxDimension: CGFloat) -> UIImage {

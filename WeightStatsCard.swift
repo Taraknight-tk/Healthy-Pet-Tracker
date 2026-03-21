@@ -8,6 +8,14 @@ import SwiftUI
 struct WeightStatsCard: View {
     let pet: Pet
 
+    /// Optional callback invoked when the user taps the Trend chip.
+    /// PetDetailView wires this to scroll to the weight chart section.
+    var onTrendTap: (() -> Void)? = nil
+
+    /// Optional callback invoked when the user taps the Entries chip.
+    /// PetDetailView wires this to scroll to the weight history section.
+    var onEntriesTap: (() -> Void)? = nil
+
     // Computed once and shared by both layout branches
     private var avgWeightValue: String {
         if let avg = pet.averageWeight(days: 30) {
@@ -28,21 +36,21 @@ struct WeightStatsCard: View {
             ViewThatFits(in: .horizontal) {
                 // Default: side-by-side columns
                 HStack(spacing: 12) {
-                    StatItem(title: "Trend",   value: pet.weightTrend.description, icon: pet.weightTrend.icon,   color: pet.weightTrend.color)
+                    trendItem
                     Divider().frame(height: 50).background(Color.borderSubtle)
-                    StatItem(title: "Average", value: avgWeightValue,               icon: "chart.bar.fill",        color: .accentPrimary)
+                    StatItem(title: "Average", value: avgWeightValue, icon: "chart.bar.fill", color: .accentPrimary)
                     Divider().frame(height: 50).background(Color.borderSubtle)
-                    StatItem(title: "Entries", value: "\(pet.weightEntries.count)", icon: "list.bullet",           color: .accentActive)
+                    entriesItem
                 }
                 .frame(maxWidth: .infinity)
 
                 // Fallback: stacked rows for large Dynamic Type sizes
                 VStack(spacing: 12) {
-                    StatItem(title: "Trend",   value: pet.weightTrend.description, icon: pet.weightTrend.icon,   color: pet.weightTrend.color)
+                    trendItem
                     Divider().background(Color.borderSubtle)
-                    StatItem(title: "Average", value: avgWeightValue,               icon: "chart.bar.fill",        color: .accentPrimary)
+                    StatItem(title: "Average", value: avgWeightValue, icon: "chart.bar.fill", color: .accentPrimary)
                     Divider().background(Color.borderSubtle)
-                    StatItem(title: "Entries", value: "\(pet.weightEntries.count)", icon: "list.bullet",           color: .accentActive)
+                    entriesItem
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -55,6 +63,70 @@ struct WeightStatsCard: View {
                 .stroke(Color.borderSubtle, lineWidth: 1)
         )
     }
+
+    // MARK: - Trend chip (tappable shortcut to chart)
+
+    @ViewBuilder
+    private var trendItem: some View {
+        if let callback = onTrendTap {
+            Button(action: callback) {
+                StatItem(
+                    title: "Trend",
+                    value: pet.weightTrend.description,
+                    icon: pet.weightTrend.icon,
+                    color: pet.weightTrend.color
+                )
+            }
+            .buttonStyle(.plain)
+            .overlay(alignment: .topTrailing) {
+                Image(systemName: "chevron.down.circle")
+                    .font(.caption2)
+                    .foregroundStyle(Color.accentMuted)
+                    .offset(x: 4, y: -4)
+                    .accessibilityHidden(true)
+            }
+            .accessibilityHint("Double-tap to scroll to the weight chart")
+        } else {
+            StatItem(
+                title: "Trend",
+                value: pet.weightTrend.description,
+                icon: pet.weightTrend.icon,
+                color: pet.weightTrend.color
+            )
+        }
+    }
+
+    // MARK: - Entries chip (tappable shortcut to weight history)
+
+    @ViewBuilder
+    private var entriesItem: some View {
+        if let callback = onEntriesTap {
+            Button(action: callback) {
+                StatItem(
+                    title: "Entries",
+                    value: "\(pet.weightEntries.count)",
+                    icon: "list.bullet",
+                    color: .accentActive
+                )
+            }
+            .buttonStyle(.plain)
+            .overlay(alignment: .topTrailing) {
+                Image(systemName: "chevron.down.circle")
+                    .font(.caption2)
+                    .foregroundStyle(Color.accentMuted)
+                    .offset(x: 4, y: -4)
+                    .accessibilityHidden(true)
+            }
+            .accessibilityHint("Double-tap to scroll to weight history")
+        } else {
+            StatItem(
+                title: "Entries",
+                value: "\(pet.weightEntries.count)",
+                icon: "list.bullet",
+                color: .accentActive
+            )
+        }
+    }
 }
 
 struct StatItem: View {
@@ -62,13 +134,13 @@ struct StatItem: View {
     let value: String
     let icon: String
     let color: Color
-    
+
     var body: some View {
         VStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.title3)
                 .foregroundStyle(color)
-                .accessibilityHidden(true)  // decorative — title + value carry the meaning
+                .accessibilityHidden(true)
 
             Text(value)
                 .font(.headline)
@@ -79,7 +151,6 @@ struct StatItem: View {
                 .tertiaryText()
         }
         .frame(maxWidth: .infinity)
-        // Reads as e.g. "Trend: Gaining" instead of three separate elements
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(title): \(value)")
     }
@@ -87,7 +158,7 @@ struct StatItem: View {
 
 #Preview {
     let pet = Pet(name: "Max", birthday: Date(), species: "Dog", initialWeight: 45.0, unit: .pounds)
-    return WeightStatsCard(pet: pet)
+    return WeightStatsCard(pet: pet, onTrendTap: { print("scroll to chart") })
         .padding()
         .background(Color.bgPrimary)
 }

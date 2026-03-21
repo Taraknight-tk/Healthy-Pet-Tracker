@@ -4,12 +4,13 @@
 //
 //  Pro feature: custom pet profile photo.
 //
-//  • Pro users: tapping the badge opens PhotosPicker. The chosen image is
-//    resized to a max of 400 × 400 px, saved as a JPEG in
-//    Documents/pet_photos/, and the file path is stored on the Pet model.
-//  • Free users: a lock badge is shown instead; tapping presents UpgradeView.
+//  • Pro users: tapping the photo circle shows a confirmation dialog offering
+//    Camera or Photo Library. The chosen image is resized to 400×400 max,
+//    saved as a JPEG in Documents/pet_photos/, and the path stored on Pet.
+//  • Free users: tapping the circle presents UpgradeView.
 //
-//  Drop-in replacement for the species SF Symbol icon in PetInfoCard.
+//  Tap-target is intentionally limited to the 80×80 photo circle via an
+//  invisible overlay so that nothing outside that area is accidentally hit.
 //
 
 import SwiftUI
@@ -22,6 +23,9 @@ struct PetPhotoView: View {
 
     @State private var selectedItem: PhotosPickerItem?
     @State private var showUpgrade = false
+    @State private var showSourcePicker = false
+    @State private var showCamera = false
+    @State private var showLibraryPicker = false
 
     private let photoSize: CGFloat = 80
 
@@ -30,22 +34,62 @@ struct PetPhotoView: View {
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             photoCircle
-            badgeButton
+            badgeDecoration
         }
+        // ── Precise tap target: only the circle itself is hittable ──────────
+        .overlay(alignment: .center) {
+            Color.clear
+                .frame(width: photoSize, height: photoSize)
+                .contentShape(Circle())
+                .onTapGesture {
+                    if entitlements.hasPremium {
+                        showSourcePicker = true
+                    } else {
+                        showUpgrade = true
+                    }
+                }
+        }
+        // ── Source selection ─────────────────────────────────────────────────
+        .confirmationDialog(
+            pet.photoPath != nil ? "Change Photo" : "Add Photo",
+            isPresented: $showSourcePicker,
+            titleVisibility: .visible
+        ) {
+            if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                Button("Take Photo") { showCamera = true }
+            }
+            Button("Choose from Library") { showLibraryPicker = true }
+            Button("Cancel", role: .cancel) { }
+        }
+        // ── Photo library picker (out-of-process, no permission prompt) ──────
+        .photosPicker(isPresented: $showLibraryPicker, selection: $selectedItem, matching: .images)
+        .onChange(of: selectedItem) { _, newItem in
+            guard let newItem else { return }
+            Task { await loadAndSavePhotoFromPicker(newItem) }
+        }
+        // ── Camera picker ────────────────────────────────────────────────────
+        .fullScreenCover(isPresented: $showCamera) {
+            CameraPickerView(
+                onCapture: { image in
+                    Task { await savePhoto(image) }
+                },
+                onDismiss: { showCamera = false }
+            )
+            .ignoresSafeArea()
+        }
+        // ── Upgrade sheet ────────────────────────────────────────────────────
         .sheet(isPresented: $showUpgrade) {
-            // Sheets don't reliably inherit environment objects in SwiftUI,
-            // so we pass the singletons explicitly here.
             UpgradeView()
                 .environmentObject(EntitlementService.shared)
                 .environmentObject(StoreService.shared)
         }
-        .onChange(of: selectedItem) { _, newItem in
-            guard let newItem else { return }
-            Task { await loadAndSavePhoto(from: newItem) }
+        // Auto-dismiss paywall when user purchases
+        .onChange(of: entitlements.hasPremium) { _, isPro in
+            if isPro { showUpgrade = false }
         }
     }
 
-    // MARK: - Photo circle
+    // MARK: - Photo circle (purely visual)
 
     @ViewBuilder
     private var photoCircle: some View {
@@ -73,25 +117,19 @@ struct PetPhotoView: View {
         }
     }
 
-    // MARK: - Badge button (Pro vs locked)
+    // MARK: - Badge decoration (visual only — tap is handled by the overlay above)
 
-    @ViewBuilder
-    private var badgeButton: some View {
+    private var badgeDecoration: some View {
+        let systemName: String
+        let color: Color
         if entitlements.hasPremium {
-            PhotosPicker(selection: $selectedItem, matching: .images) {
-                badgeIcon(systemName: pet.photoPath != nil ? "pencil.circle.fill" : "plus.circle.fill")
-            }
-            .accessibilityLabel(pet.photoPath != nil ? "Change photo" : "Add photo")
+            systemName = pet.photoPath != nil ? "pencil.circle.fill" : "camera.circle.fill"
+            color = Color.accentPrimary
         } else {
-            Button { showUpgrade = true } label: {
-                badgeIcon(systemName: "lock.circle.fill", color: Color.accentMuted)
-            }
-            .accessibilityLabel("Upgrade to Pro to add a custom photo")
+            systemName = "lock.circle.fill"
+            color = Color.accentMuted
         }
-    }
-
-    private func badgeIcon(systemName: String, color: Color = Color.accentPrimary) -> some View {
-        Image(systemName: systemName)
+        return Image(systemName: systemName)
             .symbolRenderingMode(.palette)
             .foregroundStyle(.white, color)
             .font(.system(size: 24))
@@ -100,42 +138,40 @@ struct PetPhotoView: View {
                     .fill(Color.bgPrimary)
                     .frame(width: 20, height: 20)
             )
+            .allowsHitTesting(false)  // all taps fall through to the overlay
     }
 
     // MARK: - Photo handling
 
-    private func loadAndSavePhoto(from item: PhotosPickerItem) async {
+    private func loadAndSavePhotoFromPicker(_ item: PhotosPickerItem) async {
         guard let data = try? await item.loadTransferable(type: Data.self),
-              let original = UIImage(data: data) else {
-            return
-        }
+              let original = UIImage(data: data) else { return }
+        await savePhoto(original)
+        selectedItem = nil
+    }
 
-        let resized = downscaled(original, maxDimension: 400)
-
+    private func savePhoto(_ image: UIImage) async {
+        let resized = downscaled(image, maxDimension: 400)
         guard let jpegData = resized.jpegData(compressionQuality: 0.8) else { return }
 
-        // Ensure the pet_photos directory exists
         let documents = FileManager.default
             .urls(for: .documentDirectory, in: .userDomainMask)[0]
         let photosDir = documents.appendingPathComponent("pet_photos", isDirectory: true)
         try? FileManager.default.createDirectory(at: photosDir, withIntermediateDirectories: true)
 
-        // Each pet gets its own file, keyed by UUID — re-saving replaces the old one
         let fileURL = photosDir.appendingPathComponent("pet_\(pet.id.uuidString).jpg")
         try? jpegData.write(to: fileURL)
 
-        // Update model — SwiftData picks up the change automatically
-        pet.photoPath = fileURL.path
-        selectedItem = nil
+        await MainActor.run {
+            pet.photoPath = fileURL.path
+        }
     }
 
     /// Downscales a UIImage so its longest edge is ≤ maxDimension.
-    /// Returns the original image unchanged if it already fits.
     private func downscaled(_ image: UIImage, maxDimension: CGFloat) -> UIImage {
         let size = image.size
         let longest = max(size.width, size.height)
         guard longest > maxDimension else { return image }
-
         let scale = maxDimension / longest
         let newSize = CGSize(width: size.width * scale, height: size.height * scale)
         let renderer = UIGraphicsImageRenderer(size: newSize)
@@ -148,13 +184,13 @@ struct PetPhotoView: View {
 
     private func speciesIcon(for species: String) -> String {
         switch species.lowercased() {
-        case "dog":                         return "dog.fill"
-        case "cat":                         return "cat.fill"
-        case "rabbit":                      return "hare.fill"
-        case "bird":                        return "bird.fill"
-        case "fish":                        return "fish.fill"
+        case "dog":                           return "dog.fill"
+        case "cat":                           return "cat.fill"
+        case "rabbit":                        return "hare.fill"
+        case "bird":                          return "bird.fill"
+        case "fish":                          return "fish.fill"
         case "tortoise", "turtle", "reptile": return "tortoise.fill"
-        default:                            return "pawprint.fill"
+        default:                              return "pawprint.fill"
         }
     }
 }

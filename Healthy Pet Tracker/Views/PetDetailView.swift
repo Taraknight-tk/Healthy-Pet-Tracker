@@ -8,6 +8,14 @@ import SwiftData
 import Charts
 import PhotosUI
 
+// MARK: - Scroll anchor IDs
+
+private enum ScrollID: Hashable {
+    case chart
+    case stats
+    case history
+}
+
 struct CSVExportData: Identifiable {
     let id = UUID()
     let data: Data
@@ -25,136 +33,155 @@ struct PetDetailView: View {
     @State private var csvExport: CSVExportData?
     @State private var showingDeleteAlert = false
     @State private var showingUpgrade = false
-    
+
     var body: some View {
-        List {
-            Section {
-                PetInfoCard(pet: pet)
-            }
-            .listRowInsets(EdgeInsets())
-            .listRowBackground(Color.clear)
-            
-            if !pet.sortedWeightEntries.isEmpty {
+        ScrollViewReader { proxy in
+            List {
                 Section {
-                    WeightGoalCard(pet: pet)
+                    PetInfoCard(pet: pet)
                 }
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
-                
-                Section {
-                    WeightStatsCard(pet: pet)
-                }
-                .listRowInsets(EdgeInsets())
-                .listRowBackground(Color.clear)
-                
-                Section("Weight Chart") {
-                    WeightChartView(entries: pet.sortedWeightEntries, unit: pet.preferredUnit)
-                        .frame(height: 250)
-                        .padding(.vertical, 8)
-                }
-                .themedSection()
-                
-                // MARK: - Reminders (Pro Feature)
-                Section("Reminders") {
-                    if entitlements.hasPremium {
-                        RemindersListView(pet: pet)
-                    } else {
-                        Button {
-                            showingUpgrade = true
-                        } label: {
-                            HStack(spacing: 12) {
-                                Image(systemName: "bell.badge.fill")
-                                    .font(.system(size: 22))
-                                    .foregroundStyle(Color.accentMuted)
-                                    .frame(width: 28)
 
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Reminders")
-                                        .font(.subheadline)
-                                        .fontWeight(.medium)
-                                        .primaryText()
-                                    Text("Upgrade to Pro for weight check-ins, vet alerts & more")
-                                        .font(.caption)
-                                        .tertiaryText()
+                if !pet.sortedWeightEntries.isEmpty {
+                    Section {
+                        WeightGoalCard(pet: pet)
+                    }
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+
+                    Section {
+                        WeightStatsCard(
+                            pet: pet,
+                            onTrendTap: {
+                                // Trend chip tapped → scroll to chart
+                                withAnimation(.easeInOut(duration: 0.35)) {
+                                    proxy.scrollTo(ScrollID.chart, anchor: .top)
                                 }
-
-                                Spacer()
-
-                                Image(systemName: "lock.fill")
-                                    .font(.caption)
-                                    .foregroundStyle(Color.accentMuted)
+                            },
+                            onEntriesTap: {
+                                // Entries chip tapped → scroll to weight history
+                                withAnimation(.easeInOut(duration: 0.35)) {
+                                    proxy.scrollTo(ScrollID.history, anchor: .top)
+                                }
                             }
-                            .padding(.vertical, 4)
+                        )
+                    }
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                    .id(ScrollID.stats)
+
+                    Section("Weight Chart") {
+                        WeightChartView(entries: pet.sortedWeightEntries, unit: pet.preferredUnit)
+                            .frame(height: 250)
+                            .padding(.vertical, 8)
+                    }
+                    .themedSection()
+                    .id(ScrollID.chart)
+
+                    // MARK: - Reminders (Pro Feature)
+                    Section("Reminders") {
+                        if entitlements.hasPremium {
+                            RemindersListView(pet: pet)
+                        } else {
+                            Button {
+                                showingUpgrade = true
+                            } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: "bell.badge.fill")
+                                        .font(.system(size: 22))
+                                        .foregroundStyle(Color.accentMuted)
+                                        .frame(width: 28)
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("Reminders")
+                                            .font(.subheadline)
+                                            .fontWeight(.medium)
+                                            .primaryText()
+                                        Text("Upgrade to Pro for weight check-ins, vet alerts & more")
+                                            .font(.caption)
+                                            .tertiaryText()
+                                    }
+
+                                    Spacer()
+
+                                    Image(systemName: "lock.fill")
+                                        .font(.caption)
+                                        .foregroundStyle(Color.accentMuted)
+                                }
+                                .padding(.vertical, 4)
+                            }
                         }
                     }
-                }
-                .themedSection()
+                    .themedSection()
 
-                // MARK: - Breed Insights (Pro Feature)
-                Section("Breed Insights") {
-                    BreedInsightView(pet: pet)
-                }
-                .themedSection()
-
-                Section("Weight History") {
-                    ForEach(pet.sortedWeightEntries.reversed()) { entry in
-                        WeightEntryRow(entry: entry)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                selectedEntry = entry
-                            }
+                    // MARK: - Breed Insights (Pro Feature)
+                    Section("Breed Insights") {
+                        BreedInsightView(pet: pet)
                     }
-                    .onDelete(perform: deleteEntries)
-                }
-                .themedSection()
-            } else {
-                Section {
-                    Text("No weight entries yet. Add your first weight entry to start tracking!")
-                        .secondaryText()
-                        .padding()
-                }
-                .themedSection()
-            }
-        }
-        .scrollContentBackground(.hidden)
-        .background(Color.bgPrimary)
-        .navigationTitle(pet.name)
-        .navigationBarTitleDisplayMode(.large)
-        .toolbarBackground(Color.bgSecondary, for: .navigationBar)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Button(action: { showingAddWeight = true }) {
-                        Label("Add Weight", systemImage: "plus")
-                    }
+                    .themedSection()
 
-                    if !pet.sortedWeightEntries.isEmpty {
-                        Button(action: {
-                            let csvString = DataExporter.exportToCSV(pet: pet)
-
-                            if let data = csvString.data(using: .utf8) {
-                                csvExport = CSVExportData(
-                                    data: data,
-                                    fileName: "\(pet.name)_weight_data.csv"
-                                )
-                            }
-                        }) {
-                            Label("Export Data", systemImage: "square.and.arrow.up")
+                    Section("Weight History") {
+                        ForEach(pet.sortedWeightEntries.reversed()) { entry in
+                            WeightEntryRow(entry: entry)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    selectedEntry = entry
+                                }
                         }
+                        .onDelete(perform: deleteEntries)
                     }
+                    .themedSection()
+                    .id(ScrollID.history)
 
-                    Divider()
-
-                    Button(role: .destructive, action: { showingDeleteAlert = true }) {
-                        Label("Delete Pet", systemImage: "trash")
+                } else {
+                    Section {
+                        Text("No weight entries yet. Add your first weight entry to start tracking!")
+                            .secondaryText()
+                            .padding()
                     }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .accessibilityLabel("More options")
+                    .themedSection()
                 }
-                .tint(.accentPrimary)
             }
-        }
+            .scrollContentBackground(.hidden)
+            .background(Color.bgPrimary)
+            .navigationTitle(pet.name)
+            .navigationBarTitleDisplayMode(.large)
+            .toolbarBackground(Color.bgSecondary, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Button(action: { showingAddWeight = true }) {
+                            Label("Add Weight", systemImage: "plus")
+                        }
+
+                        if !pet.sortedWeightEntries.isEmpty {
+                            Button(action: {
+                                let csvString = DataExporter.exportToCSV(pet: pet)
+                                if let data = csvString.data(using: .utf8) {
+                                    csvExport = CSVExportData(
+                                        data: data,
+                                        fileName: "\(pet.name)_weight_data.csv"
+                                    )
+                                }
+                            }) {
+                                Label("Export Data", systemImage: "square.and.arrow.up")
+                            }
+                        }
+
+                        Divider()
+
+                        Button(role: .destructive, action: { showingDeleteAlert = true }) {
+                            Label("Delete Pet", systemImage: "trash")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .accessibilityLabel("More options")
+                    }
+                    .tint(.accentPrimary)
+                }
+            }
+        } // end ScrollViewReader
         .sheet(isPresented: $showingAddWeight) {
             AddWeightView(pet: pet)
                 .environmentObject(EntitlementService.shared)
@@ -183,7 +210,7 @@ struct PetDetailView: View {
             Text("This will permanently delete \(pet.name) and all their weight history. This cannot be undone.")
         }
     }
-    
+
     private func deleteEntries(offsets: IndexSet) {
         withAnimation(reduceMotion ? nil : .default) {
             let sortedEntries = pet.sortedWeightEntries.reversed()
@@ -196,9 +223,11 @@ struct PetDetailView: View {
     }
 }
 
+// MARK: - PetInfoCard
+
 struct PetInfoCard: View {
     @Bindable var pet: Pet
-    
+
     var body: some View {
         VStack(spacing: 12) {
             HStack {
@@ -217,16 +246,16 @@ struct PetInfoCard: View {
                         .font(.subheadline)
                         .secondaryText()
                 }
-                
+
                 Spacer()
 
                 PetPhotoView(pet: pet)
             }
-            
+
             if let latest = pet.latestWeight {
                 Divider()
                     .background(Color.borderSubtle)
-                
+
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Current Weight")
@@ -237,9 +266,9 @@ struct PetInfoCard: View {
                             .fontWeight(.semibold)
                             .foregroundStyle(Color.accentActive)
                     }
-                    
+
                     Spacer()
-                    
+
                     VStack(alignment: .trailing, spacing: 4) {
                         Text("Last Updated")
                             .font(.caption)
@@ -250,10 +279,10 @@ struct PetInfoCard: View {
                     }
                 }
             }
-            
+
             Divider()
                 .background(Color.borderSubtle)
-            
+
             HStack {
                 Text("Preferred Unit")
                     .font(.subheadline)
@@ -277,8 +306,9 @@ struct PetInfoCard: View {
         )
         .padding()
     }
-    
 }
+
+// MARK: - WeightEntryRow
 
 struct WeightEntryRow: View {
     let entry: WeightEntry
