@@ -9,6 +9,7 @@ import StoreKit
 
 @main
 struct PetWeightTrackerApp: App {
+    @Environment(\.scenePhase) private var scenePhase
     private var transactionListener: Task<Void, Error>?
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
@@ -49,6 +50,22 @@ struct PetWeightTrackerApp: App {
         .modelContainer(sharedModelContainer)
         .environmentObject(EntitlementService.shared)
         .environmentObject(StoreService.shared)
+        // Custom-interval reminders use one-shot triggers (so they fire at the
+        // correct time of day). When the app comes to the foreground, we check
+        // whether each custom-interval notification has already delivered and,
+        // if so, queue the next occurrence — keeping the reminder chain alive.
+        .onChange(of: scenePhase) { _, newPhase in
+            guard newPhase == .active else { return }
+            Task { @MainActor in
+                let context = sharedModelContainer.mainContext
+                let pets = (try? context.fetch(FetchDescriptor<Pet>())) ?? []
+                for pet in pets {
+                    for reminder in pet.reminders {
+                        NotificationService.shared.rescheduleCustomIfExpired(reminder)
+                    }
+                }
+            }
+        }
     }
     
     private func configureNavigationBarAppearance() {

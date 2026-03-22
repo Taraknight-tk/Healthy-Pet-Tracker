@@ -131,8 +131,59 @@ class NotificationService: ObservableObject {
 
         case .custom:
             guard let days = reminder.customIntervalDays, days > 0 else { return nil }
-            let interval = TimeInterval(days * 86_400) // seconds in a day
-            return UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: true)
+            // UNTimeIntervalNotificationTrigger ignores timeOfDay completely —
+            // it fires N*86400 seconds after scheduling, not at the user's
+            // chosen time. Worse, repeats:true compounds the drift so every
+            // subsequent firing lands at a different time of day.
+            //
+            // Fix: use a one-shot UNCalendarNotificationTrigger for the next
+            // occurrence at the correct time. PetWeightTrackerApp reschedules
+            // on foreground (via rescheduleCustomIfExpired) to keep the chain
+            // going after each delivery.
+            let calendar = Calendar.current
+            let timeComps = calendar.dateComponents([.hour, .minute], from: reminder.timeOfDay)
+            guard
+                let nextDay     = calendar.date(byAdding: .day, value: days, to: Date()),
+                let nextFiring  = calendar.date(
+                    bySettingHour:   timeComps.hour   ?? 9,
+                    minute:          timeComps.minute ?? 0,
+                    second:          0,
+                    of:              nextDay
+                )
+            else { return nil }
+            let components = calendar.dateComponents(
+                [.year, .month, .day, .hour, .minute],
+                from: nextFiring
+            )
+            return UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+        }
+    }
+
+    // MARK: - Custom-interval rescheduling
+
+    /// For custom-interval reminders only: checks whether the previous
+    /// notification has already fired (no pending request for this ID)
+    /// and, if so, schedules the next occurrence. Call this from the
+    /// scenePhase .active handler so the chain of one-shot triggers never
+    /// silently goes dead after delivery.
+    func rescheduleCustomIfExpired(_ reminder: PetReminder) {
+        // Only proceed for enabled, custom-frequency reminders
+        guard reminder.isEnabled, reminder.frequency == .custom else { return }
+
+        // Capture only Sendable primitives for use inside background closures
+        let idString = reminder.id.uuidString
+        nonisolated(unsafe) let reminder = reminder
+
+        center.getPendingNotificationRequests { [weak self] pending in
+            // This closure may be treated as @Sendable by the framework; avoid capturing non-Sendable types
+            let stillPending = pending.contains { $0.identifier == idString }
+            guard !stillPending else { return }   // next occurrence already queued
+
+            // Hop back to the main actor to access actor-isolated state and call scheduling API
+            DispatchQueue.main.async { [weak self] in
+                // It's safe to use `reminder` again on the main actor
+                self?.schedule(reminder)
+            }
         }
     }
 }

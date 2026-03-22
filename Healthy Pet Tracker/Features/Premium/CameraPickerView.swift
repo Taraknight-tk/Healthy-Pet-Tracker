@@ -51,11 +51,19 @@ struct CameraPickerView: UIViewControllerRepresentable {
             if let image = info[.originalImage] as? UIImage {
                 onCapture(image)
             }
-            onDismiss()
+            // Defer the SwiftUI state change until after UIKit finishes its
+            // camera-capture transition. Calling onDismiss() synchronously here
+            // sets showCamera = false while UIKit is still mid-animation, which
+            // causes SwiftUI and UIKit to fight over the presentation stack → crash.
+            DispatchQueue.main.async { [weak self] in
+                self?.onDismiss()
+            }
         }
 
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            onDismiss()
+            DispatchQueue.main.async { [weak self] in
+                self?.onDismiss()
+            }
         }
     }
 }
