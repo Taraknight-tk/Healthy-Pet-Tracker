@@ -63,7 +63,7 @@ struct PetPhotoView: View {
             titleVisibility: .visible
         ) {
             if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                Button("Take Photo") { showCamera = true }
+                Button("Take Photo") { DispatchQueue.main.async { showCamera = true } }
             }
             Button("Choose from Library") { showLibraryPicker = true }
             Button("Cancel", role: .cancel) { }

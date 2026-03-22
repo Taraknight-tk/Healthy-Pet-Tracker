@@ -169,21 +169,62 @@ class NotificationService: ObservableObject {
     func rescheduleCustomIfExpired(_ reminder: PetReminder) {
         // Only proceed for enabled, custom-frequency reminders
         guard reminder.isEnabled, reminder.frequency == .custom else { return }
+        guard let days = reminder.customIntervalDays, days > 0 else { return }
 
-        // Capture only Sendable primitives for use inside background closures
-        let idString = reminder.id.uuidString
-        nonisolated(unsafe) let reminder = reminder
+        // Extract plain Sendable values before crossing the async/Sendable boundary.
+        // PetReminder is a SwiftData @Model (non-Sendable), so we cannot capture it
+        // directly inside a @Sendable closure — only primitive copies are safe here.
+        let idString  = reminder.id.uuidString
+        let title     = reminder.title
+        let notes     = reminder.notes
+        let timeOfDay = reminder.timeOfDay
 
         center.getPendingNotificationRequests { [weak self] pending in
-            // This closure may be treated as @Sendable by the framework; avoid capturing non-Sendable types
             let stillPending = pending.contains { $0.identifier == idString }
             guard !stillPending else { return }   // next occurrence already queued
 
-            // Hop back to the main actor to access actor-isolated state and call scheduling API
             DispatchQueue.main.async { [weak self] in
-                // It's safe to use `reminder` again on the main actor
-                self?.schedule(reminder)
+                self?.scheduleCustom(
+                    id:        idString,
+                    title:     title,
+                    notes:     notes,
+                    timeOfDay: timeOfDay,
+                    days:      days
+                )
             }
+        }
+    }
+
+    /// Schedules a one-shot custom-interval notification from plain Sendable values.
+    /// This avoids capturing the non-Sendable PetReminder @Model across async boundaries.
+    private func scheduleCustom(id: String, title: String, notes: String,
+                                timeOfDay: Date, days: Int) {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        if !notes.isEmpty { content.body = notes }
+        content.sound = .default
+
+        let calendar  = Calendar.current
+        let timeComps = calendar.dateComponents([.hour, .minute], from: timeOfDay)
+        guard
+            let nextDay    = calendar.date(byAdding: .day, value: days, to: Date()),
+            let nextFiring = calendar.date(
+                bySettingHour: timeComps.hour   ?? 9,
+                minute:        timeComps.minute ?? 0,
+                second:        0,
+                of:            nextDay
+            )
+        else { return }
+
+        let components = calendar.dateComponents(
+            [.year, .month, .day, .hour, .minute],
+            from: nextFiring
+        )
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+        let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
+
+        center.add(request) { error in
+            if let error { print("Failed to reschedule custom notification: \(error)") }
         }
     }
 }
