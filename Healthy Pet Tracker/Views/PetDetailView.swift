@@ -86,12 +86,12 @@ struct PetDetailView: View {
                         WeightStatsCard(
                             pet: pet,
                             onTrendTap: {
-                                withAnimation(.easeInOut(duration: 0.35)) {
+                                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.35)) {
                                     proxy.scrollTo(ScrollID.chart, anchor: .top)
                                 }
                             },
                             onEntriesTap: {
-                                withAnimation(.easeInOut(duration: 0.35)) {
+                                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.35)) {
                                     proxy.scrollTo(ScrollID.history, anchor: .top)
                                 }
                             }
@@ -395,7 +395,9 @@ struct PetInfoCard: View {
                             isEditingBirthday = false
                             isEditingName = true
                         }
-                        .accessibilityLabel("\(pet.name). Tap to rename")
+                        .accessibilityLabel(pet.name)
+                        .accessibilityHint("Double-tap to rename")
+                        .accessibilityAddTraits(.isButton)
                     }
 
                     // ── Inline birthday ──────────────────────────────────
@@ -431,7 +433,9 @@ struct PetInfoCard: View {
                             isEditingName = false
                             isEditingBirthday = true
                         }
-                        .accessibilityLabel("Born \(pet.birthday.formatted(date: .long, time: .omitted)). Tap to edit birthday")
+                        .accessibilityLabel("Born \(pet.birthday.formatted(date: .long, time: .omitted))")
+                        .accessibilityHint("Double-tap to edit birthday")
+                        .accessibilityAddTraits(.isButton)
                     }
 
                     if !isEditingBirthday {

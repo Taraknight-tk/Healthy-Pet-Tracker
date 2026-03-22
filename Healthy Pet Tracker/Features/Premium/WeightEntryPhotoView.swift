@@ -46,6 +46,13 @@ struct WeightEntryPhotoView: View {
                             showUpgrade = true
                         }
                     }
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityLabel(entitlements.hasPremium
+                        ? (photoPath != nil ? "Weight entry photo" : "No photo")
+                        : "Photo locked")
+                    .accessibilityHint(entitlements.hasPremium
+                        ? (photoPath != nil ? "Double-tap to change photo" : "Double-tap to add photo")
+                        : "Double-tap to upgrade to Pro")
             }
             // ── Source selection ─────────────────────────────────────────────
             .confirmationDialog(
