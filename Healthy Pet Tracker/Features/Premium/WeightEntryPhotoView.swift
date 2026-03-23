@@ -61,7 +61,14 @@ struct WeightEntryPhotoView: View {
                 titleVisibility: .visible
             ) {
                 if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                    Button("Take Photo") { DispatchQueue.main.async { showCamera = true } }
+                    Button("Take Photo") {
+                        // Delay long enough for the confirmationDialog's UIAlertController
+                        // dismiss animation to fully complete (~300 ms). Presenting a
+                        // fullScreenCover while UIKit is still mid-dismiss crashes.
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            showCamera = true
+                        }
+                    }
                 }
                 Button("Choose from Library") { showLibraryPicker = true }
                 Button("Cancel", role: .cancel) { }

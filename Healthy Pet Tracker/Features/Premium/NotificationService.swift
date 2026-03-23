@@ -45,7 +45,8 @@ class NotificationService: ObservableObject {
     // MARK: - Scheduling
 
     /// Schedule (or reschedule) a notification for the given reminder.
-    /// Cancels any existing notification with the same ID first.
+    /// Removes any existing notification with the same ID first, then adds
+    /// the new one using async/await for proper error propagation.
     func schedule(_ reminder: PetReminder) {
         guard reminder.isEnabled else {
             cancel(reminder)
@@ -60,19 +61,28 @@ class NotificationService: ObservableObject {
         content.sound = .default
 
         guard let trigger = buildTrigger(for: reminder) else {
-            print("Could not build trigger for reminder \(reminder.id)")
+            print("⚠️ Could not build trigger for reminder \(reminder.id) [\(reminder.frequency)]")
             return
         }
 
+        let id = reminder.id.uuidString
         let request = UNNotificationRequest(
-            identifier: reminder.id.uuidString,
+            identifier: id,
             content: content,
             trigger: trigger
         )
 
-        center.add(request) { error in
-            if let error {
-                print("Failed to schedule notification: \(error)")
+        // Always clear existing notification before adding the new one.
+        // This avoids stale entries that could block a fresh schedule.
+        center.removePendingNotificationRequests(withIdentifiers: [id])
+
+        // Use async/await instead of the callback-based add() to ensure
+        // proper actor isolation and error surfacing on @MainActor.
+        Task {
+            do {
+                try await center.add(request)
+            } catch {
+                print("❌ Failed to schedule notification [\(id)]: \(error)")
             }
         }
     }
@@ -131,15 +141,10 @@ class NotificationService: ObservableObject {
 
         case .custom:
             guard let days = reminder.customIntervalDays, days > 0 else { return nil }
-            // UNTimeIntervalNotificationTrigger ignores timeOfDay completely —
-            // it fires N*86400 seconds after scheduling, not at the user's
-            // chosen time. Worse, repeats:true compounds the drift so every
-            // subsequent firing lands at a different time of day.
-            //
-            // Fix: use a one-shot UNCalendarNotificationTrigger for the next
-            // occurrence at the correct time. PetWeightTrackerApp reschedules
-            // on foreground (via rescheduleCustomIfExpired) to keep the chain
-            // going after each delivery.
+            // Compute the exact target date (N days from now at the chosen time)
+            // and use UNTimeIntervalNotificationTrigger with the precise number
+            // of seconds until that moment. One-shot (repeats:false) — the
+            // scenePhase .active handler reschedules the next occurrence.
             let calendar = Calendar.current
             let timeComps = calendar.dateComponents([.hour, .minute], from: reminder.timeOfDay)
             guard
@@ -151,11 +156,9 @@ class NotificationService: ObservableObject {
                     of:              nextDay
                 )
             else { return nil }
-            let components = calendar.dateComponents(
-                [.year, .month, .day, .hour, .minute],
-                from: nextFiring
-            )
-            return UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+            let interval = nextFiring.timeIntervalSinceNow
+            guard interval > 0 else { return nil }
+            return UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
         }
     }
 
@@ -171,27 +174,28 @@ class NotificationService: ObservableObject {
         guard reminder.isEnabled, reminder.frequency == .custom else { return }
         guard let days = reminder.customIntervalDays, days > 0 else { return }
 
-        // Extract plain Sendable values before crossing the async/Sendable boundary.
-        // PetReminder is a SwiftData @Model (non-Sendable), so we cannot capture it
-        // directly inside a @Sendable closure — only primitive copies are safe here.
+        // Extract plain Sendable values before crossing the async boundary.
+        // PetReminder is a SwiftData @Model (non-Sendable) and cannot be
+        // captured inside a Task or @Sendable closure.
         let idString  = reminder.id.uuidString
         let title     = reminder.title
         let notes     = reminder.notes
         let timeOfDay = reminder.timeOfDay
 
-        center.getPendingNotificationRequests { [weak self] pending in
+        // Use async/await instead of callback to avoid Sendable capture issues
+        // with the getPendingNotificationRequests completion handler.
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            let pending = await self.center.pendingNotificationRequests()
             let stillPending = pending.contains { $0.identifier == idString }
             guard !stillPending else { return }   // next occurrence already queued
-
-            DispatchQueue.main.async { [weak self] in
-                self?.scheduleCustom(
-                    id:        idString,
-                    title:     title,
-                    notes:     notes,
-                    timeOfDay: timeOfDay,
-                    days:      days
-                )
-            }
+            self.scheduleCustom(
+                id:        idString,
+                title:     title,
+                notes:     notes,
+                timeOfDay: timeOfDay,
+                days:      days
+            )
         }
     }
 
@@ -216,15 +220,24 @@ class NotificationService: ObservableObject {
             )
         else { return }
 
-        let components = calendar.dateComponents(
-            [.year, .month, .day, .hour, .minute],
-            from: nextFiring
-        )
-        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+        // Use UNTimeIntervalNotificationTrigger with the exact number of seconds
+        // until the target date. This is more reliable than calendar-matching for
+        // one-shot triggers because it avoids potential edge cases with
+        // UNCalendarNotificationTrigger date component matching.
+        let interval = nextFiring.timeIntervalSinceNow
+        guard interval > 0 else { return }
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
+
         let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
 
-        center.add(request) { error in
-            if let error { print("Failed to reschedule custom notification: \(error)") }
+        center.removePendingNotificationRequests(withIdentifiers: [id])
+
+        Task {
+            do {
+                try await center.add(request)
+            } catch {
+                print("❌ Failed to reschedule custom notification [\(id)]: \(error)")
+            }
         }
     }
 }
