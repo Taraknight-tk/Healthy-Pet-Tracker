@@ -12,12 +12,17 @@ import Combine
 
 @MainActor
 class NotificationService: ObservableObject {
-    
+
     static let shared = NotificationService()
 
     @Published private(set) var isAuthorized = false
 
     private let center = UNUserNotificationCenter.current()
+
+    /// Number of future occurrences to pre-schedule for custom-interval
+    /// reminders. This means the reminder keeps firing even if the user
+    /// doesn't open the app for up to (batchSize × interval) days.
+    private let customBatchSize = 10
 
     private init() {}
 
@@ -45,14 +50,22 @@ class NotificationService: ObservableObject {
     // MARK: - Scheduling
 
     /// Schedule (or reschedule) a notification for the given reminder.
-    /// Removes any existing notification with the same ID first, then adds
-    /// the new one using async/await for proper error propagation.
+    /// For weekly/monthly/once, schedules a single (possibly repeating) trigger.
+    /// For custom intervals, pre-schedules the next `customBatchSize` occurrences
+    /// so the reminder keeps firing even if the user doesn't open the app.
     func schedule(_ reminder: PetReminder) {
         guard reminder.isEnabled else {
             cancel(reminder)
             return
         }
 
+        // Custom intervals use a batch of one-shot triggers (see below).
+        if reminder.frequency == .custom {
+            scheduleCustomBatch(reminder)
+            return
+        }
+
+        // Weekly / monthly / once — single trigger
         let content = UNMutableNotificationContent()
         content.title = reminder.title
         if !reminder.notes.isEmpty {
@@ -72,12 +85,8 @@ class NotificationService: ObservableObject {
             trigger: trigger
         )
 
-        // Always clear existing notification before adding the new one.
-        // This avoids stale entries that could block a fresh schedule.
         center.removePendingNotificationRequests(withIdentifiers: [id])
 
-        // Use async/await instead of the callback-based add() to ensure
-        // proper actor isolation and error surfacing on @MainActor.
         Task {
             do {
                 try await center.add(request)
@@ -87,16 +96,81 @@ class NotificationService: ObservableObject {
         }
     }
 
-    /// Cancel the notification for a specific reminder.
+    // MARK: - Custom-interval batch scheduling
+
+    /// Pre-schedules the next `customBatchSize` occurrences for a custom-interval
+    /// reminder. Each occurrence gets its own one-shot trigger with a unique ID
+    /// ({uuid}_1 … {uuid}_10). This means the reminder keeps firing for up to
+    /// batchSize × intervalDays even if the user never opens the app.
+    /// The scenePhase .active handler calls this again to "top up" the batch
+    /// whenever the app comes to the foreground.
+    private func scheduleCustomBatch(_ reminder: PetReminder) {
+        guard let days = reminder.customIntervalDays, days > 0 else { return }
+
+        let baseId    = reminder.id.uuidString
+        let calendar  = Calendar.current
+        let timeComps = calendar.dateComponents([.hour, .minute], from: reminder.timeOfDay)
+
+        // Build shared notification content (center.add copies it internally)
+        let content = UNMutableNotificationContent()
+        content.title = reminder.title
+        if !reminder.notes.isEmpty { content.body = reminder.notes }
+        content.sound = .default
+
+        // Clear every existing notification for this reminder (base + batch IDs)
+        let allIds = [baseId] + (1...customBatchSize).map { "\(baseId)_\($0)" }
+        center.removePendingNotificationRequests(withIdentifiers: allIds)
+
+        // Schedule the next N occurrences
+        Task {
+            for i in 1...customBatchSize {
+                guard
+                    let targetDay = calendar.date(byAdding: .day, value: days * i, to: Date()),
+                    let targetFiring = calendar.date(
+                        bySettingHour: timeComps.hour   ?? 9,
+                        minute:        timeComps.minute ?? 0,
+                        second:        0,
+                        of:            targetDay
+                    )
+                else { continue }
+
+                let interval = targetFiring.timeIntervalSinceNow
+                guard interval > 0 else { continue }
+
+                let trigger = UNTimeIntervalNotificationTrigger(
+                    timeInterval: interval, repeats: false
+                )
+                let request = UNNotificationRequest(
+                    identifier: "\(baseId)_\(i)",
+                    content: content,
+                    trigger: trigger
+                )
+
+                do {
+                    try await center.add(request)
+                } catch {
+                    print("❌ Failed to schedule [\(baseId)_\(i)]: \(error)")
+                }
+            }
+        }
+    }
+
+    /// Cancel the notification(s) for a specific reminder.
+    /// Clears both the single-trigger ID and any batch IDs for custom intervals.
     func cancel(_ reminder: PetReminder) {
-        center.removePendingNotificationRequests(
-            withIdentifiers: [reminder.id.uuidString]
-        )
+        let baseId = reminder.id.uuidString
+        let ids = [baseId] + (1...customBatchSize).map { "\(baseId)_\($0)" }
+        center.removePendingNotificationRequests(withIdentifiers: ids)
     }
 
     /// Cancel all notifications for a pet (e.g., when the pet is deleted).
     func cancelAll(for pet: Pet) {
-        let ids = pet.reminders.map { $0.id.uuidString }
+        var ids: [String] = []
+        for reminder in pet.reminders {
+            let baseId = reminder.id.uuidString
+            ids.append(baseId)
+            ids += (1...customBatchSize).map { "\(baseId)_\($0)" }
+        }
         center.removePendingNotificationRequests(withIdentifiers: ids)
     }
 
@@ -140,105 +214,21 @@ class NotificationService: ObservableObject {
             return UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
 
         case .custom:
-            guard let days = reminder.customIntervalDays, days > 0 else { return nil }
-            // Compute the exact target date (N days from now at the chosen time)
-            // and use UNTimeIntervalNotificationTrigger with the precise number
-            // of seconds until that moment. One-shot (repeats:false) — the
-            // scenePhase .active handler reschedules the next occurrence.
-            let calendar = Calendar.current
-            let timeComps = calendar.dateComponents([.hour, .minute], from: reminder.timeOfDay)
-            guard
-                let nextDay     = calendar.date(byAdding: .day, value: days, to: Date()),
-                let nextFiring  = calendar.date(
-                    bySettingHour:   timeComps.hour   ?? 9,
-                    minute:          timeComps.minute ?? 0,
-                    second:          0,
-                    of:              nextDay
-                )
-            else { return nil }
-            let interval = nextFiring.timeIntervalSinceNow
-            guard interval > 0 else { return nil }
-            return UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
+            // Custom intervals are handled by scheduleCustomBatch() which
+            // pre-schedules multiple one-shot triggers. This case should
+            // never be reached from schedule(), but return nil as a safety net.
+            return nil
         }
     }
 
-    // MARK: - Custom-interval rescheduling
+    // MARK: - Custom-interval top-up
 
-    /// For custom-interval reminders only: checks whether the previous
-    /// notification has already fired (no pending request for this ID)
-    /// and, if so, schedules the next occurrence. Call this from the
-    /// scenePhase .active handler so the chain of one-shot triggers never
-    /// silently goes dead after delivery.
+    /// Called from the scenePhase .active handler. Re-schedules the full batch
+    /// of future occurrences so the notification chain stays alive even if
+    /// older ones have already fired while the app was closed.
     func rescheduleCustomIfExpired(_ reminder: PetReminder) {
-        // Only proceed for enabled, custom-frequency reminders
         guard reminder.isEnabled, reminder.frequency == .custom else { return }
-        guard let days = reminder.customIntervalDays, days > 0 else { return }
-
-        // Extract plain Sendable values before crossing the async boundary.
-        // PetReminder is a SwiftData @Model (non-Sendable) and cannot be
-        // captured inside a Task or @Sendable closure.
-        let idString  = reminder.id.uuidString
-        let title     = reminder.title
-        let notes     = reminder.notes
-        let timeOfDay = reminder.timeOfDay
-
-        // Use async/await instead of callback to avoid Sendable capture issues
-        // with the getPendingNotificationRequests completion handler.
-        Task { @MainActor [weak self] in
-            guard let self else { return }
-            let pending = await self.center.pendingNotificationRequests()
-            let stillPending = pending.contains { $0.identifier == idString }
-            guard !stillPending else { return }   // next occurrence already queued
-            self.scheduleCustom(
-                id:        idString,
-                title:     title,
-                notes:     notes,
-                timeOfDay: timeOfDay,
-                days:      days
-            )
-        }
-    }
-
-    /// Schedules a one-shot custom-interval notification from plain Sendable values.
-    /// This avoids capturing the non-Sendable PetReminder @Model across async boundaries.
-    private func scheduleCustom(id: String, title: String, notes: String,
-                                timeOfDay: Date, days: Int) {
-        let content = UNMutableNotificationContent()
-        content.title = title
-        if !notes.isEmpty { content.body = notes }
-        content.sound = .default
-
-        let calendar  = Calendar.current
-        let timeComps = calendar.dateComponents([.hour, .minute], from: timeOfDay)
-        guard
-            let nextDay    = calendar.date(byAdding: .day, value: days, to: Date()),
-            let nextFiring = calendar.date(
-                bySettingHour: timeComps.hour   ?? 9,
-                minute:        timeComps.minute ?? 0,
-                second:        0,
-                of:            nextDay
-            )
-        else { return }
-
-        // Use UNTimeIntervalNotificationTrigger with the exact number of seconds
-        // until the target date. This is more reliable than calendar-matching for
-        // one-shot triggers because it avoids potential edge cases with
-        // UNCalendarNotificationTrigger date component matching.
-        let interval = nextFiring.timeIntervalSinceNow
-        guard interval > 0 else { return }
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
-
-        let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
-
-        center.removePendingNotificationRequests(withIdentifiers: [id])
-
-        Task {
-            do {
-                try await center.add(request)
-            } catch {
-                print("❌ Failed to reschedule custom notification [\(id)]: \(error)")
-            }
-        }
+        scheduleCustomBatch(reminder)
     }
 }
 

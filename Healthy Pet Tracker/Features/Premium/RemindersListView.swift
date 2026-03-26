@@ -19,6 +19,7 @@ struct RemindersListView: View {
     @Bindable var pet: Pet
 
     @State private var showingAddReminder = false
+    @State private var showingEditReminder = false
     @State private var reminderToEdit: PetReminder?
 
     private var sortedReminders: [PetReminder] {
@@ -33,7 +34,10 @@ struct RemindersListView: View {
                 ForEach(sortedReminders) { reminder in
                     ReminderRow(reminder: reminder, onToggle: { toggleReminder(reminder) })
                         .contentShape(Rectangle())
-                        .onTapGesture { reminderToEdit = reminder }
+                        .onTapGesture {
+                            reminderToEdit = reminder
+                            showingEditReminder = true
+                        }
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                             Button(role: .destructive) {
                                 deleteReminder(reminder)
@@ -56,8 +60,13 @@ struct RemindersListView: View {
         .sheet(isPresented: $showingAddReminder) {
             AddReminderView(pet: pet)
         }
-        .sheet(item: $reminderToEdit) { reminder in
-            AddReminderView(pet: pet, existingReminder: reminder)
+        // Use isPresented (not sheet(item:)) to avoid a SwiftUI bug where
+        // SwiftData @Model identity changes during re-renders cause the
+        // sheet to immediately dismiss on the first tap.
+        .sheet(isPresented: $showingEditReminder, onDismiss: { reminderToEdit = nil }) {
+            if let reminder = reminderToEdit {
+                AddReminderView(pet: pet, existingReminder: reminder)
+            }
         }
     }
 
