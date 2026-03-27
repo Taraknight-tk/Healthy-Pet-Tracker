@@ -5,13 +5,16 @@
 //  Wraps UNUserNotificationCenter to schedule, cancel, and reschedule
 //  local notifications for PetReminder objects.
 //
+//  Also acts as UNUserNotificationCenterDelegate so notifications are
+//  displayed as banners even when the app is in the foreground.
+//
 
 import Foundation
 import UserNotifications
 import Combine
 
 @MainActor
-class NotificationService: ObservableObject {
+class NotificationService: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
 
     static let shared = NotificationService()
 
@@ -24,7 +27,34 @@ class NotificationService: ObservableObject {
     /// doesn't open the app for up to (batchSize × interval) days.
     private let customBatchSize = 10
 
-    private init() {}
+    private override init() {
+        super.init()
+        // Register as delegate so we can show banners while the app
+        // is in the foreground (iOS suppresses them by default).
+        center.delegate = self
+    }
+
+    // MARK: - UNUserNotificationCenterDelegate
+
+    /// Show notification banners + play sound even when the app is active.
+    /// Without this, notifications that fire while the user is inside the
+    /// app are silently swallowed — which makes it look like scheduling failed.
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        completionHandler([.banner, .sound])
+    }
+
+    /// Called when the user taps a delivered notification.
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        completionHandler()
+    }
 
     // MARK: - Permission
 
@@ -54,6 +84,8 @@ class NotificationService: ObservableObject {
     /// For custom intervals, pre-schedules the next `customBatchSize` occurrences
     /// so the reminder keeps firing even if the user doesn't open the app.
     func schedule(_ reminder: PetReminder) {
+        print("🔔 schedule() called: frequency=\(reminder.frequency.rawValue), enabled=\(reminder.isEnabled), customDays=\(reminder.customIntervalDays as Any)")
+
         guard reminder.isEnabled else {
             cancel(reminder)
             return
@@ -85,12 +117,13 @@ class NotificationService: ObservableObject {
             trigger: trigger
         )
 
+        // Remove-then-add with the synchronous callback API.
+        // Using the callback version avoids any Task / actor-hop delays
+        // that could allow the calling view to dismiss before the request
+        // is registered with the notification center.
         center.removePendingNotificationRequests(withIdentifiers: [id])
-
-        Task {
-            do {
-                try await center.add(request)
-            } catch {
+        center.add(request) { error in
+            if let error {
                 print("❌ Failed to schedule notification [\(id)]: \(error)")
             }
         }
@@ -105,51 +138,75 @@ class NotificationService: ObservableObject {
     /// The scenePhase .active handler calls this again to "top up" the batch
     /// whenever the app comes to the foreground.
     private func scheduleCustomBatch(_ reminder: PetReminder) {
-        guard let days = reminder.customIntervalDays, days > 0 else { return }
+        guard let days = reminder.customIntervalDays, days > 0 else {
+            print("⚠️ scheduleCustomBatch: skipped — customIntervalDays is \(reminder.customIntervalDays as Any)")
+            return
+        }
 
         let baseId    = reminder.id.uuidString
         let calendar  = Calendar.current
         let timeComps = calendar.dateComponents([.hour, .minute], from: reminder.timeOfDay)
+        let hour      = timeComps.hour   ?? 9
+        let minute    = timeComps.minute ?? 0
 
-        // Build shared notification content (center.add copies it internally)
-        let content = UNMutableNotificationContent()
-        content.title = reminder.title
-        if !reminder.notes.isEmpty { content.body = reminder.notes }
-        content.sound = .default
+        print("🔔 scheduleCustomBatch: interval=\(days)d, time=\(hour):\(String(format: "%02d", minute)), batchSize=\(customBatchSize)")
 
         // Clear every existing notification for this reminder (base + batch IDs)
         let allIds = [baseId] + (1...customBatchSize).map { "\(baseId)_\($0)" }
         center.removePendingNotificationRequests(withIdentifiers: allIds)
 
-        // Schedule the next N occurrences
-        Task {
-            for i in 1...customBatchSize {
-                guard
-                    let targetDay = calendar.date(byAdding: .day, value: days * i, to: Date()),
-                    let targetFiring = calendar.date(
-                        bySettingHour: timeComps.hour   ?? 9,
-                        minute:        timeComps.minute ?? 0,
-                        second:        0,
-                        of:            targetDay
-                    )
-                else { continue }
+        // Find the NEXT valid firing time. If today's target time hasn't
+        // passed yet, the first notification fires later today. Otherwise
+        // it fires `days` days from now. This ensures the user gets a
+        // notification as early as possible instead of always waiting a
+        // full interval for the first one.
+        let now = Date()
+        guard let todayFiring = calendar.date(
+            bySettingHour: hour, minute: minute, second: 0, of: now
+        ) else { return }
 
-                let interval = targetFiring.timeIntervalSinceNow
-                guard interval > 0 else { continue }
+        let firstFiring: Date
+        if todayFiring > now {
+            // Today's time hasn't passed — fire later today
+            firstFiring = todayFiring
+        } else {
+            // Today's time already passed — first firing is `days` days out
+            guard let next = calendar.date(byAdding: .day, value: days, to: todayFiring) else { return }
+            firstFiring = next
+        }
 
-                let trigger = UNTimeIntervalNotificationTrigger(
-                    timeInterval: interval, repeats: false
-                )
-                let request = UNNotificationRequest(
-                    identifier: "\(baseId)_\(i)",
-                    content: content,
-                    trigger: trigger
-                )
+        // Schedule the next N occurrences using UNCalendarNotificationTrigger
+        // (the same trigger type that works for .once / .weekly / .monthly).
+        for i in 0..<customBatchSize {
+            guard let targetFiring = calendar.date(byAdding: .day, value: days * i, to: firstFiring)
+            else { continue }
 
-                do {
-                    try await center.add(request)
-                } catch {
-                    print("❌ Failed to schedule [\(baseId)_\(i)]: \(error)")
+            let components = calendar.dateComponents(
+                [.year, .month, .day, .hour, .minute],
+                from: targetFiring
+            )
+
+            let content = UNMutableNotificationContent()
+            content.title = reminder.title
+            if !reminder.notes.isEmpty { content.body = reminder.notes }
+            content.sound = .default
+
+            let trigger = UNCalendarNotificationTrigger(
+                dateMatching: components, repeats: false
+            )
+            let batchId = "\(baseId)_\(i + 1)"
+            let request = UNNotificationRequest(
+                identifier: batchId,
+                content: content,
+                trigger: trigger
+            )
+
+            let firingStr = targetFiring.formatted(date: .abbreviated, time: .shortened)
+            center.add(request) { error in
+                if let error {
+                    print("❌ Failed to schedule [\(batchId)]: \(error)")
+                } else {
+                    print("✅ Scheduled [\(batchId)] for \(firingStr)")
                 }
             }
         }
@@ -231,4 +288,3 @@ class NotificationService: ObservableObject {
         scheduleCustomBatch(reminder)
     }
 }
-
