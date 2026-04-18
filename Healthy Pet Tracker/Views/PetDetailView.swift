@@ -122,7 +122,7 @@ struct PetDetailView: View {
                                 HStack(spacing: 12) {
                                     Image(systemName: "bell.badge.fill")
                                         .font(.system(size: 22))
-                                        .foregroundStyle(Color.accentPrimary)
+                                        .foregroundStyle(Color.accentInteractive)
                                         .frame(width: 28)
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text("Reminders")
@@ -131,7 +131,7 @@ struct PetDetailView: View {
                                             .font(.caption).tertiaryText()
                                     }
                                     Spacer()
-                                    Image(systemName: "lock.fill").font(.caption).foregroundStyle(Color.accentPrimary)
+                                    Image(systemName: "lock.fill").font(.caption).foregroundStyle(Color.accentInteractive)
                                 }
                                 .padding(.vertical, 4)
                             }
@@ -181,10 +181,10 @@ struct PetDetailView: View {
                 .themedSection()
             }
             .scrollContentBackground(.hidden)
-            .background(Color.bgPrimary)
+            .background(Color.background)
             .navigationTitle(pet.name)
             .navigationBarTitleDisplayMode(.large)
-            .toolbarBackground(Color.bgSecondary, for: .navigationBar)
+            .toolbarBackground(Color.fillSecondary, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
@@ -215,7 +215,7 @@ struct PetDetailView: View {
                         Image(systemName: "ellipsis.circle")
                             .accessibilityLabel("More options")
                     }
-                    .tint(.accentPrimary)
+                    .tint(.accentInteractive)
                 }
             }
         } // end ScrollViewReader
@@ -374,7 +374,7 @@ struct PetInfoCard: View {
                                 .onSubmit { commitName() }
                             Button(action: commitName) {
                                 Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(Color.accentPrimary)
+                                    .foregroundStyle(Color.accentInteractive)
                                     .font(.title3)
                             }
                             .accessibilityLabel("Save name")
@@ -411,12 +411,12 @@ struct PetInfoCard: View {
                             )
                             .labelsHidden()
                             .datePickerStyle(.compact)
-                            .tint(.accentPrimary)
+                            .tint(.accentInteractive)
 
                             Button("Done") { commitBirthday() }
                                 .font(.caption)
                                 .fontWeight(.medium)
-                                .tint(.accentPrimary)
+                                .tint(.accentInteractive)
                         }
                     } else {
                         HStack(spacing: 5) {
@@ -462,7 +462,7 @@ struct PetInfoCard: View {
                         Text(latest.displayWeight)
                             .font(.title2)
                             .fontWeight(.semibold)
-                            .foregroundStyle(Color.accentPrimary)
+                            .foregroundStyle(Color.accentInteractive)
                     }
 
                     Spacer()
@@ -492,11 +492,11 @@ struct PetInfoCard: View {
                     }
                 }
                 .pickerStyle(.menu)
-                .tint(.accentPrimary)
+                .tint(.accentInteractive)
             }
         }
         .padding()
-        .background(Color.bgTertiary)
+        .background(Color.surface)
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
@@ -564,7 +564,7 @@ struct WeightEntryRow: View {
             Text(entry.displayWeight)
                 .font(.title3)
                 .fontWeight(.semibold)
-                .foregroundStyle(Color.accentPrimary)
+                .foregroundStyle(Color.accentInteractive)
         }
         .padding(.vertical, 4)
         .accessibilityElement(children: .ignore)

@@ -175,7 +175,7 @@ struct WeightChartView: View {
                             Text(String(format: "%.1f", filteredAndConvertedData[0].weight))
                                 .font(.title)
                                 .fontWeight(.bold)
-                                .foregroundStyle(Color.accentPrimary)
+                                .foregroundStyle(Color.accentInteractive)
                             Text(unit.symbol)
                                 .font(.caption)
                                 .tertiaryText()
@@ -209,7 +209,7 @@ struct WeightChartView: View {
                         }
                         .padding(.horizontal)
                         .padding(.vertical, 8)
-                        .background(Color.bgSecondary)
+                        .background(Color.fillSecondary)
                         .cornerRadius(8)
                     }
                     
@@ -226,14 +226,14 @@ struct WeightChartView: View {
                                 x: .value("Date", dataPoint.date),
                                 y: .value("Weight", dataPoint.weight)
                             )
-                            .foregroundStyle(Color.accentPrimary)
+                            .foregroundStyle(Color.accentInteractive)
                             .interpolationMethod(.catmullRom)
                             
                             PointMark(
                                 x: .value("Date", dataPoint.date),
                                 y: .value("Weight", dataPoint.weight)
                             )
-                            .foregroundStyle(Color.accentPrimary)
+                            .foregroundStyle(Color.accentInteractive)
                             .symbolSize(60)
                             
                             AreaMark(
@@ -242,7 +242,7 @@ struct WeightChartView: View {
                             )
                             .foregroundStyle(
                                 LinearGradient(
-                                    colors: [Color.accentPrimary.opacity(0.3), Color.accentMuted.opacity(0.1)],
+                                    colors: [Color.accentInteractive.opacity(0.3), Color.accentLight.opacity(0.1)],
                                     startPoint: .top,
                                     endPoint: .bottom
                                 )
@@ -393,7 +393,7 @@ struct WeightChartView: View {
             WeightChartView(entries: sampleEntries, unit: .pounds)
                 .padding()
                 .frame(height: 250)
-                .background(Color.bgTertiary)
+                .background(Color.surface)
         }
     }
     

@@ -71,9 +71,9 @@ enum BreedWeightStatus {
 
     var colorName: String {
         switch self {
-        case .underweight: return "accentMuted"
+        case .underweight: return "accentLight"
         case .healthy:     return "accentActive"
-        case .overweight:  return "accentMuted"
+        case .overweight:  return "accentLight"
         }
     }
 }

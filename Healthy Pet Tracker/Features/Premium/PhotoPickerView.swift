@@ -114,17 +114,17 @@ struct PetPhotoView: View {
                 .scaledToFill()
                 .frame(width: photoSize, height: photoSize)
                 .clipShape(Circle())
-                .overlay(Circle().stroke(Color.accentPrimary, lineWidth: 2))
+                .overlay(Circle().stroke(Color.accentInteractive, lineWidth: 2))
                 .accessibilityLabel("\(pet.name)'s photo")
         } else {
             Circle()
-                .fill(Color.bgTertiary)
+                .fill(Color.surface)
                 .frame(width: photoSize, height: photoSize)
                 .overlay(Circle().stroke(Color.borderSubtle, lineWidth: 1))
                 .overlay(
                     Image(systemName: speciesIcon(for: pet.species))
                         .font(.system(size: 32))
-                        .foregroundStyle(Color.accentPrimary)
+                        .foregroundStyle(Color.accentInteractive)
                         .accessibilityHidden(true)
                 )
                 .accessibilityLabel("\(pet.name), \(pet.species)")
@@ -138,10 +138,10 @@ struct PetPhotoView: View {
         let color: Color
         if entitlements.hasPremium {
             systemName = pet.photoPath != nil ? "pencil.circle.fill" : "camera.circle.fill"
-            color = Color.accentPrimary
+            color = Color.accentInteractive
         } else {
             systemName = "lock.circle.fill"
-            color = Color.accentPrimary
+            color = Color.accentInteractive
         }
         return Image(systemName: systemName)
             .symbolRenderingMode(.palette)
@@ -149,7 +149,7 @@ struct PetPhotoView: View {
             .font(.system(size: 24))
             .background(
                 Circle()
-                    .fill(Color.bgPrimary)
+                    .fill(Color.background)
                     .frame(width: 20, height: 20)
             )
             .allowsHitTesting(false)  // all taps fall through to the overlay

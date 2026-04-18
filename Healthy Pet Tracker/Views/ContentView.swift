@@ -28,21 +28,21 @@ struct ContentView: View {
                 }
             }
             .navigationTitle("My Pets")
-            .toolbarBackground(Color.bgSecondary, for: .navigationBar)
-            .background(Color.bgPrimary)
+            .toolbarBackground(Color.fillSecondary, for: .navigationBar)
+            .background(Color.background)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: { showingAddPet = true }) {
                         Label("Add Pet", systemImage: "plus")
                     }
-                    .tint(.accentPrimary)
+                    .tint(.accentInteractive)
                 }
             }
             .sheet(isPresented: $showingAddPet) {
                 AddPetView()
             }
         }
-        .tint(.accentPrimary)
+        .tint(.accentInteractive)
         // ── Rename alert ────────────────────────────────────────────────────
         .alert("Rename Pet", isPresented: Binding(
             get: { renamingPet != nil },
@@ -100,7 +100,7 @@ struct ContentView: View {
                     .foregroundStyle(.white)
             }
             .buttonStyle(.borderedProminent)
-            .tint(.accentPrimary)
+            .tint(.accentInteractive)
             .padding(.top)
         }
         .padding()
@@ -137,7 +137,7 @@ struct ContentView: View {
             .padding(.bottom, 32)
         }
         .scrollContentBackground(.hidden)
-        .background(Color.bgPrimary)
+        .background(Color.background)
     }
 }
 
@@ -166,7 +166,7 @@ struct PetGridCard: View {
                     Text(latest.displayWeight)
                         .font(.subheadline)
                         .fontWeight(.semibold)
-                        .foregroundStyle(Color.accentPrimary)
+                        .foregroundStyle(Color.accentInteractive)
 
                     HStack(spacing: 4) {
                         Image(systemName: pet.weightTrend.icon)
@@ -187,7 +187,7 @@ struct PetGridCard: View {
             .padding(.vertical, 10)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .background(Color.bgTertiary)
+        .background(Color.surface)
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
@@ -213,11 +213,11 @@ struct PetGridCard: View {
         } else {
             // Placeholder — species icon centred on brand background
             Rectangle()
-                .fill(Color.bgPrimary)
+                .fill(Color.background)
                 .overlay(
                     Image(systemName: speciesIcon(for: pet.species))
                         .font(.system(size: 44))
-                        .foregroundStyle(Color.accentPrimary.opacity(0.35))
+                        .foregroundStyle(Color.accentInteractive.opacity(0.35))
                         .accessibilityHidden(true)
                 )
         }

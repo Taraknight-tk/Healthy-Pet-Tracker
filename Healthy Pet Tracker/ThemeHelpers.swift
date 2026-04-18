@@ -16,10 +16,10 @@ struct ThemedNavigation<Content: View>: View {
         content()
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(displayMode)
-            .toolbarBackground(Color.bgSecondary, for: .navigationBar)
+            .toolbarBackground(Color.fillSecondary, for: .navigationBar)
             .toolbarColorScheme(nil, for: .navigationBar)
             .tint(.primary)
-            .background(Color.bgPrimary)
+            .background(Color.background)
     }
 }
 
@@ -36,7 +36,7 @@ struct ThemedForm<Content: View>: View {
             content()
         }
         .scrollContentBackground(.hidden)
-        .background(Color.bgPrimary)
+        .background(Color.background)
     }
 }
 
@@ -44,7 +44,7 @@ struct ThemedForm<Content: View>: View {
 struct ThemedSectionModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .listRowBackground(Color.bgTertiary)
+            .listRowBackground(Color.surface)
             .listRowSeparatorTint(Color.borderSubtle)
     }
 }

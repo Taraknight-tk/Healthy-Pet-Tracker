@@ -73,7 +73,7 @@ struct AddPetView: View {
             }
             .navigationTitle("Add New Pet")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Color.bgSecondary, for: .navigationBar)
+            .toolbarBackground(Color.fillSecondary, for: .navigationBar)
             .onAppear {
                 configureNavigationBarAppearance()
             }
@@ -90,7 +90,7 @@ struct AddPetView: View {
                         savePet()
                     }
                     .disabled(!isValid)
-                    .tint(.accentPrimary)
+                    .tint(.accentInteractive)
                 }
             }
             .alert("Error", isPresented: $showingError) {
@@ -153,7 +153,7 @@ struct AddPetView: View {
         appearance.configureWithOpaqueBackground()
         // UIColor(named:) reads from the asset catalog and automatically
         // resolves the correct light / dark / high-contrast variant.
-        appearance.backgroundColor = UIColor.named("bgSecondary")
+        appearance.backgroundColor = UIColor.named("fillSecondary")
         appearance.largeTitleTextAttributes = [.foregroundColor: UIColor.named("textPrimary")]
         appearance.titleTextAttributes      = [.foregroundColor: UIColor.named("textPrimary")]
 

@@ -45,7 +45,7 @@ struct AddReminderView: View {
             }
             .navigationTitle(isEditing ? "Edit Reminder" : "New Reminder")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Color.bgSecondary, for: .navigationBar)
+            .toolbarBackground(Color.fillSecondary, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -54,7 +54,7 @@ struct AddReminderView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button(isEditing ? "Save" : "Add") { saveReminder() }
                         .disabled(!isValid)
-                        .tint(.accentPrimary)
+                        .tint(.accentInteractive)
                 }
             }
             .alert("Notifications Disabled", isPresented: $showingPermissionAlert) {

@@ -71,7 +71,7 @@ struct PetWeightTrackerApp: App {
     private func configureNavigationBarAppearance() {
         let appearance = UINavigationBarAppearance()
         appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = UIColor(Color.bgSecondary)
+        appearance.backgroundColor = UIColor(Color.fillSecondary)
         
         // Set title text color
         appearance.largeTitleTextAttributes = [

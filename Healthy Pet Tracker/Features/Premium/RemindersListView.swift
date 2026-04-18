@@ -53,7 +53,7 @@ struct RemindersListView: View {
                             HStack(spacing: 12) {
                                 Image(systemName: reminder.reminderType.icon)
                                     .font(.system(size: 18))
-                                    .foregroundStyle(reminder.isEnabled ? Color.accentPrimary : Color.accentMuted)
+                                    .foregroundStyle(reminder.isEnabled ? Color.accentInteractive : Color.accentLight)
                                     .frame(width: 28)
                                     .accessibilityHidden(true)
 
@@ -80,7 +80,7 @@ struct RemindersListView: View {
                             set: { _ in toggleReminder(reminder) }
                         ))
                         .labelsHidden()
-                        .tint(.accentPrimary)
+                        .tint(.accentInteractive)
                     }
                     .padding(.vertical, 4)
                     .opacity(reminder.isEnabled ? 1.0 : 0.6)
@@ -105,7 +105,7 @@ struct RemindersListView: View {
                         .font(.subheadline)
                         .fontWeight(.medium)
                 }
-                .tint(.accentPrimary)
+                .tint(.accentInteractive)
             }
         }
         // Single sheet for both add and edit. When reminderToEdit is nil,
@@ -137,7 +137,7 @@ struct RemindersListView: View {
                     .font(.subheadline)
                     .fontWeight(.medium)
             }
-            .tint(.accentPrimary)
+            .tint(.accentInteractive)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)

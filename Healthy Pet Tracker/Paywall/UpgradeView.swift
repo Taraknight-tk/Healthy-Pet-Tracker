@@ -54,10 +54,10 @@ struct UpgradeView: View {
                 }
                 .padding()
             }
-            .background(Color.bgPrimary)
+            .background(Color.background)
             .navigationTitle("Upgrade to Pro")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Color.bgSecondary, for: .navigationBar)
+            .toolbarBackground(Color.fillSecondary, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Not Now") { dismiss() }
@@ -78,7 +78,7 @@ struct UpgradeView: View {
         VStack(spacing: 12) {
             Image(systemName: "pawprint.circle.fill")
                 .font(.system(size: 64))
-                .foregroundStyle(Color.accentPrimary)
+                .foregroundStyle(Color.accentInteractive)
                 .accessibilityHidden(true)
 
             Text("Healthy Pet Tracker Pro")
@@ -100,7 +100,7 @@ struct UpgradeView: View {
                 HStack(spacing: 16) {
                     Image(systemName: feature.icon)
                         .font(.system(size: 22))
-                        .foregroundStyle(Color.accentPrimary)
+                        .foregroundStyle(Color.accentInteractive)
                         .frame(width: 32)
                         .accessibilityHidden(true)
 
@@ -125,7 +125,7 @@ struct UpgradeView: View {
                 }
             }
         }
-        .background(Color.bgTertiary)
+        .background(Color.surface)
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
@@ -152,7 +152,7 @@ struct UpgradeView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.accentPrimary)
+                    .background(Color.accentInteractive)
                     .cornerRadius(12)
                 }
                 .disabled(isPurchasing)
@@ -172,7 +172,7 @@ struct UpgradeView: View {
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.accentPrimary)
+                            .background(Color.accentInteractive)
                             .cornerRadius(12)
                     }
                 }
@@ -188,7 +188,7 @@ struct UpgradeView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding()
-                .background(Color.accentPrimary)
+                .background(Color.accentInteractive)
                 .cornerRadius(12)
             }
 

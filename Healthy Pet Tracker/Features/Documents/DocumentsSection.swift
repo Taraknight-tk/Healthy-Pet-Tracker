@@ -62,7 +62,7 @@ struct DocumentsSection: View {
             // Always show the + Add button for Pro users
             Button(action: { showingFilePicker = true }) {
                 Label("Add Document", systemImage: "plus.circle")
-                    .foregroundStyle(Color.accentPrimary)
+                    .foregroundStyle(Color.accentInteractive)
             }
         }
         // ── File picker ──────────────────────────────────────────────────
@@ -147,7 +147,7 @@ struct DocumentsSection: View {
             HStack(spacing: 12) {
                 Image(systemName: "doc.badge.plus")
                     .font(.system(size: 22))
-                    .foregroundStyle(Color.accentPrimary)
+                    .foregroundStyle(Color.accentInteractive)
                     .frame(width: 28)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Document Storage")
@@ -161,7 +161,7 @@ struct DocumentsSection: View {
                 Spacer()
                 Image(systemName: "lock.fill")
                     .font(.caption)
-                    .foregroundStyle(Color.accentPrimary)
+                    .foregroundStyle(Color.accentInteractive)
             }
             .padding(.vertical, 4)
         }

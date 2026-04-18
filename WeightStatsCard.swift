@@ -38,7 +38,7 @@ struct WeightStatsCard: View {
                 HStack(spacing: 12) {
                     trendItem
                     Divider().frame(height: 50).background(Color.borderSubtle)
-                    StatItem(title: "Average", value: avgWeightValue, icon: "chart.bar.fill", color: .accentPrimary)
+                    StatItem(title: "Average", value: avgWeightValue, icon: "chart.bar.fill", color: .accentInteractive)
                     Divider().frame(height: 50).background(Color.borderSubtle)
                     entriesItem
                 }
@@ -48,7 +48,7 @@ struct WeightStatsCard: View {
                 VStack(spacing: 12) {
                     trendItem
                     Divider().background(Color.borderSubtle)
-                    StatItem(title: "Average", value: avgWeightValue, icon: "chart.bar.fill", color: .accentPrimary)
+                    StatItem(title: "Average", value: avgWeightValue, icon: "chart.bar.fill", color: .accentInteractive)
                     Divider().background(Color.borderSubtle)
                     entriesItem
                 }
@@ -56,7 +56,7 @@ struct WeightStatsCard: View {
             }
         }
         .padding()
-        .background(Color.bgTertiary)
+        .background(Color.surface)
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
@@ -106,7 +106,7 @@ struct WeightStatsCard: View {
                     title: "Entries",
                     value: "\(pet.weightEntries.count)",
                     icon: "list.bullet",
-                    color: .accentPrimary
+                    color: .accentInteractive
                 )
             }
             .buttonStyle(.plain)
@@ -123,7 +123,7 @@ struct WeightStatsCard: View {
                 title: "Entries",
                 value: "\(pet.weightEntries.count)",
                 icon: "list.bullet",
-                color: .accentPrimary
+                color: .accentInteractive
             )
         }
     }
@@ -160,5 +160,5 @@ struct StatItem: View {
     let pet = Pet(name: "Max", birthday: Date(), species: "Dog", initialWeight: 45.0, unit: .pounds)
     return WeightStatsCard(pet: pet, onTrendTap: { print("scroll to chart") })
         .padding()
-        .background(Color.bgPrimary)
+        .background(Color.background)
 }

@@ -86,7 +86,7 @@ struct EditWeightView: View {
             }
             .navigationTitle("Edit Weight")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Color.bgSecondary, for: .navigationBar)
+            .toolbarBackground(Color.fillSecondary, for: .navigationBar)
             .onAppear {
                 configureNavigationBarAppearance()
             }
@@ -103,7 +103,7 @@ struct EditWeightView: View {
                         saveChanges()
                     }
                     .disabled(!isValid)
-                    .tint(.accentPrimary)
+                    .tint(.accentInteractive)
                 }
             }
             .alert("Delete Entry", isPresented: $showingDeleteAlert) {
@@ -167,7 +167,7 @@ struct EditWeightView: View {
         appearance.configureWithOpaqueBackground()
         // UIColor(named:) reads from the asset catalog and automatically
         // resolves the correct light / dark / high-contrast variant.
-        appearance.backgroundColor = UIColor.named("bgSecondary")
+        appearance.backgroundColor = UIColor.named("fillSecondary")
         appearance.largeTitleTextAttributes = [.foregroundColor: UIColor.named("textPrimary")]
         appearance.titleTextAttributes      = [.foregroundColor: UIColor.named("textPrimary")]
 

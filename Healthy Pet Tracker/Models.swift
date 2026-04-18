@@ -171,9 +171,9 @@ enum WeightTrend {
     
     var color: Color {
         switch self {
-        case .gaining: return .accentPrimary
-        case .losing: return .accentPrimary
-        case .stable: return .accentPrimary
+        case .gaining: return .accentInteractive
+        case .losing: return .accentInteractive
+        case .stable: return .accentInteractive
         }
     }
     
@@ -301,12 +301,12 @@ enum NoteType: String, Codable, CaseIterable {
 
     var color: Color {
         switch self {
-        case .general:    return .accentPrimary
+        case .general:    return .accentInteractive
         case .vetVisit:   return .blue
         case .milestone:  return .orange
         case .grooming:   return .purple
         case .medication: return .red
-        case .photoOnly:  return .accentPrimary
+        case .photoOnly:  return .accentInteractive
         }
     }
 }
@@ -345,7 +345,7 @@ enum DocFileType: String, Codable {
     var color: Color {
         switch self {
         case .pdf:   return .red
-        case .image: return .accentPrimary
+        case .image: return .accentInteractive
         }
     }
 }

@@ -21,7 +21,7 @@ struct WeightGoalCard: View {
                 Button(action: { showingGoalEditor = true }) {
                     Image(systemName: pet.hasWeightGoal ? "pencil.circle.fill" : "plus.circle.fill")
                         .font(.title3)
-                        .foregroundStyle(Color.accentPrimary)
+                        .foregroundStyle(Color.accentInteractive)
                         .frame(minWidth: 44, minHeight: 44)  // meets 44pt minimum tap target
                 }
                 .accessibilityLabel(pet.hasWeightGoal ? "Edit weight goal" : "Add weight goal")
@@ -83,7 +83,7 @@ struct WeightGoalCard: View {
                 Button(action: { showingGoalEditor = true }) {
                     HStack {
                         Image(systemName: "target")
-                            .foregroundStyle(Color.accentPrimary)
+                            .foregroundStyle(Color.accentInteractive)
                             .accessibilityHidden(true)
                         Text("Set a weight goal")
                             .secondaryText()
@@ -98,7 +98,7 @@ struct WeightGoalCard: View {
             }
         }
         .padding()
-        .background(Color.bgTertiary)
+        .background(Color.surface)
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
@@ -113,9 +113,9 @@ struct WeightGoalCard: View {
         if progress >= 1.0 {
             return .green
         } else if progress >= 0.5 {
-            return .accentPrimary
+            return .accentInteractive
         } else {
-            return .accentPrimary
+            return .accentInteractive
         }
     }
 
@@ -175,7 +175,7 @@ struct WeightGoalEditorView: View {
             }
             .navigationTitle("Weight Goal")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Color.bgSecondary, for: .navigationBar)
+            .toolbarBackground(Color.fillSecondary, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
@@ -189,7 +189,7 @@ struct WeightGoalEditorView: View {
                         saveGoal()
                     }
                     .disabled(!isValid)
-                    .tint(.accentPrimary)
+                    .tint(.accentInteractive)
                 }
             }
         }
@@ -220,5 +220,5 @@ struct WeightGoalEditorView: View {
     pet.targetWeightUnit = .pounds
     return WeightGoalCard(pet: pet)
         .padding()
-        .background(Color.bgPrimary)
+        .background(Color.background)
 }

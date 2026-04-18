@@ -124,12 +124,12 @@ struct WeightEntryPhotoView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 10))
                 .overlay(
                     RoundedRectangle(cornerRadius: 10)
-                        .stroke(Color.accentPrimary, lineWidth: 1.5)
+                        .stroke(Color.accentInteractive, lineWidth: 1.5)
                 )
                 .accessibilityLabel("Weight entry photo")
         } else {
             RoundedRectangle(cornerRadius: 10)
-                .fill(Color.bgTertiary)
+                .fill(Color.surface)
                 .frame(width: size, height: size)
                 .overlay(
                     RoundedRectangle(cornerRadius: 10)
@@ -152,10 +152,10 @@ struct WeightEntryPhotoView: View {
         let color: Color
         if entitlements.hasPremium {
             systemName = photoPath != nil ? "pencil.circle.fill" : "camera.circle.fill"
-            color = Color.accentPrimary
+            color = Color.accentInteractive
         } else {
             systemName = "lock.circle.fill"
-            color = Color.accentPrimary
+            color = Color.accentInteractive
         }
         return Image(systemName: systemName)
             .symbolRenderingMode(.palette)
@@ -163,7 +163,7 @@ struct WeightEntryPhotoView: View {
             .font(.system(size: 20))
             .background(
                 Circle()
-                    .fill(Color.bgPrimary)
+                    .fill(Color.background)
                     .frame(width: 16, height: 16)
             )
             .allowsHitTesting(false)

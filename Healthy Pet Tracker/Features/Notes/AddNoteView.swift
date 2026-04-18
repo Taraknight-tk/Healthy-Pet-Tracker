@@ -55,7 +55,7 @@ struct AddNoteView: View {
                         }
                     }
                     .primaryText()
-                    .tint(.accentPrimary)
+                    .tint(.accentInteractive)
                 }
                 .themedSection()
 
@@ -79,7 +79,7 @@ struct AddNoteView: View {
             }
             .navigationTitle(isEditing ? "Edit Note" : "Add Note")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Color.bgSecondary, for: .navigationBar)
+            .toolbarBackground(Color.fillSecondary, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -88,7 +88,7 @@ struct AddNoteView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") { save() }
                         .disabled(!isValid)
-                        .tint(.accentPrimary)
+                        .tint(.accentInteractive)
                 }
             }
         }

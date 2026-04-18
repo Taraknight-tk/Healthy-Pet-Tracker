@@ -74,7 +74,7 @@ struct AddWeightView: View {
             }
             .navigationTitle("Add Weight")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Color.bgSecondary, for: .navigationBar)
+            .toolbarBackground(Color.fillSecondary, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
@@ -88,7 +88,7 @@ struct AddWeightView: View {
                         saveWeight()
                     }
                     .disabled(!isValid)
-                    .tint(.accentPrimary)
+                    .tint(.accentInteractive)
                 }
             }
             .alert("Error", isPresented: $showingError) {
@@ -167,7 +167,7 @@ struct WeightComparisonView: View {
     var body: some View {
         HStack {
             Image(systemName: difference > 0 ? "arrow.up.circle.fill" : difference < 0 ? "arrow.down.circle.fill" : "equal.circle.fill")
-                .foregroundStyle(Color.accentPrimary)
+                .foregroundStyle(Color.accentInteractive)
                 .font(.title2)
                 .accessibilityHidden(true)
 
