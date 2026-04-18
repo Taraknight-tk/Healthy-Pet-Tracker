@@ -122,7 +122,7 @@ struct PetDetailView: View {
                                 HStack(spacing: 12) {
                                     Image(systemName: "bell.badge.fill")
                                         .font(.system(size: 22))
-                                        .foregroundStyle(Color.accentMuted)
+                                        .foregroundStyle(Color.accentPrimary)
                                         .frame(width: 28)
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text("Reminders")
@@ -131,7 +131,7 @@ struct PetDetailView: View {
                                             .font(.caption).tertiaryText()
                                     }
                                     Spacer()
-                                    Image(systemName: "lock.fill").font(.caption).foregroundStyle(Color.accentMuted)
+                                    Image(systemName: "lock.fill").font(.caption).foregroundStyle(Color.accentPrimary)
                                 }
                                 .padding(.vertical, 4)
                             }
@@ -387,7 +387,7 @@ struct PetInfoCard: View {
                                 .primaryText()
                             Image(systemName: "pencil")
                                 .font(.caption)
-                                .foregroundStyle(Color.accentMuted)
+                                .foregroundStyle(Color.textTertiary)
                                 .accessibilityHidden(true)
                         }
                         .onTapGesture {
@@ -425,7 +425,7 @@ struct PetInfoCard: View {
                                 .secondaryText()
                             Image(systemName: "pencil")
                                 .font(.caption2)
-                                .foregroundStyle(Color.accentMuted)
+                                .foregroundStyle(Color.textTertiary)
                                 .accessibilityHidden(true)
                         }
                         .onTapGesture {
@@ -462,7 +462,7 @@ struct PetInfoCard: View {
                         Text(latest.displayWeight)
                             .font(.title2)
                             .fontWeight(.semibold)
-                            .foregroundStyle(Color.accentActive)
+                            .foregroundStyle(Color.accentPrimary)
                     }
 
                     Spacer()
@@ -564,7 +564,7 @@ struct WeightEntryRow: View {
             Text(entry.displayWeight)
                 .font(.title3)
                 .fontWeight(.semibold)
-                .foregroundStyle(Color.accentActive)
+                .foregroundStyle(Color.accentPrimary)
         }
         .padding(.vertical, 4)
         .accessibilityElement(children: .ignore)

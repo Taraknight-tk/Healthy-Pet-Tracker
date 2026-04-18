@@ -171,8 +171,8 @@ enum WeightTrend {
     
     var color: Color {
         switch self {
-        case .gaining: return .accentMuted
-        case .losing: return .accentActive
+        case .gaining: return .accentPrimary
+        case .losing: return .accentPrimary
         case .stable: return .accentPrimary
         }
     }
@@ -306,7 +306,7 @@ enum NoteType: String, Codable, CaseIterable {
         case .milestone:  return .orange
         case .grooming:   return .purple
         case .medication: return .red
-        case .photoOnly:  return .accentActive
+        case .photoOnly:  return .accentPrimary
         }
     }
 }

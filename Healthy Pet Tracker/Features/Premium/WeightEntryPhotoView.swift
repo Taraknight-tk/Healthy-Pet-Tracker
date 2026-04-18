@@ -138,7 +138,7 @@ struct WeightEntryPhotoView: View {
                 .overlay(
                     Image(systemName: "camera.fill")
                         .font(.system(size: 22))
-                        .foregroundStyle(Color.accentMuted)
+                        .foregroundStyle(Color.textTertiary)
                         .accessibilityHidden(true)
                 )
                 .accessibilityLabel("No photo")
@@ -155,7 +155,7 @@ struct WeightEntryPhotoView: View {
             color = Color.accentPrimary
         } else {
             systemName = "lock.circle.fill"
-            color = Color.accentMuted
+            color = Color.accentPrimary
         }
         return Image(systemName: systemName)
             .symbolRenderingMode(.palette)

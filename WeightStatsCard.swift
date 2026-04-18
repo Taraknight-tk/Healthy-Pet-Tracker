@@ -81,7 +81,7 @@ struct WeightStatsCard: View {
             .overlay(alignment: .topTrailing) {
                 Image(systemName: "chevron.down.circle")
                     .font(.caption2)
-                    .foregroundStyle(Color.accentMuted)
+                    .foregroundStyle(Color.textTertiary)
                     .offset(x: 4, y: -4)
                     .accessibilityHidden(true)
             }
@@ -106,14 +106,14 @@ struct WeightStatsCard: View {
                     title: "Entries",
                     value: "\(pet.weightEntries.count)",
                     icon: "list.bullet",
-                    color: .accentActive
+                    color: .accentPrimary
                 )
             }
             .buttonStyle(.plain)
             .overlay(alignment: .topTrailing) {
                 Image(systemName: "chevron.down.circle")
                     .font(.caption2)
-                    .foregroundStyle(Color.accentMuted)
+                    .foregroundStyle(Color.textTertiary)
                     .offset(x: 4, y: -4)
                     .accessibilityHidden(true)
             }
@@ -123,7 +123,7 @@ struct WeightStatsCard: View {
                 title: "Entries",
                 value: "\(pet.weightEntries.count)",
                 icon: "list.bullet",
-                color: .accentActive
+                color: .accentPrimary
             )
         }
     }

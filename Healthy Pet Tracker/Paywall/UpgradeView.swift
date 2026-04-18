@@ -188,7 +188,7 @@ struct UpgradeView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding()
-                .background(Color.accentMuted)
+                .background(Color.accentPrimary)
                 .cornerRadius(12)
             }
 

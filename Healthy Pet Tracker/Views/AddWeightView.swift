@@ -167,7 +167,7 @@ struct WeightComparisonView: View {
     var body: some View {
         HStack {
             Image(systemName: difference > 0 ? "arrow.up.circle.fill" : difference < 0 ? "arrow.down.circle.fill" : "equal.circle.fill")
-                .foregroundStyle(difference > 0 ? Color.accentMuted : difference < 0 ? Color.accentActive : Color.accentPrimary)
+                .foregroundStyle(Color.accentPrimary)
                 .font(.title2)
                 .accessibilityHidden(true)
 

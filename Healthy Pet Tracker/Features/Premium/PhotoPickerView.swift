@@ -141,7 +141,7 @@ struct PetPhotoView: View {
             color = Color.accentPrimary
         } else {
             systemName = "lock.circle.fill"
-            color = Color.accentMuted
+            color = Color.accentPrimary
         }
         return Image(systemName: systemName)
             .symbolRenderingMode(.palette)

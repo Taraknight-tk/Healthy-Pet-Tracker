@@ -181,9 +181,9 @@ private struct BreedRangeCard: View {
 
     private func statusColor(_ status: BreedWeightStatus) -> Color {
         switch status {
-        case .healthy:     return .accentActive
-        case .underweight: return .accentMuted
-        case .overweight:  return .accentMuted
+        case .healthy:     return .accentPrimary
+        case .underweight: return .textPrimary
+        case .overweight:  return .textPrimary
         }
     }
 }
@@ -250,9 +250,9 @@ private struct WeightRangeBar: View {
 
     private func markerColor(lbs: Double) -> Color {
         switch range.status(forWeightLbs: lbs) {
-        case .healthy:     return .accentActive
-        case .underweight: return .accentMuted
-        case .overweight:  return .accentMuted
+        case .healthy:     return .accentPrimary
+        case .underweight: return .textPrimary
+        case .overweight:  return .textPrimary
         }
     }
 }

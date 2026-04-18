@@ -83,7 +83,7 @@ struct WeightGoalCard: View {
                 Button(action: { showingGoalEditor = true }) {
                     HStack {
                         Image(systemName: "target")
-                            .foregroundStyle(Color.accentMuted)
+                            .foregroundStyle(Color.accentPrimary)
                             .accessibilityHidden(true)
                         Text("Set a weight goal")
                             .secondaryText()
@@ -115,7 +115,7 @@ struct WeightGoalCard: View {
         } else if progress >= 0.5 {
             return .accentPrimary
         } else {
-            return .accentMuted
+            return .accentPrimary
         }
     }
 

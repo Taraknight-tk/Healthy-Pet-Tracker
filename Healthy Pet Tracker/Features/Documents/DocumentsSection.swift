@@ -111,7 +111,7 @@ struct DocumentsSection: View {
 
             Image(systemName: "chevron.right")
                 .font(.caption)
-                .foregroundStyle(Color.accentMuted)
+                .foregroundStyle(Color.textTertiary)
                 .accessibilityHidden(true)
         }
         .padding(.vertical, 4)
@@ -125,7 +125,7 @@ struct DocumentsSection: View {
         HStack(spacing: 12) {
             Image(systemName: "folder.badge.plus")
                 .font(.system(size: 22))
-                .foregroundStyle(Color.accentMuted)
+                .foregroundStyle(Color.textTertiary)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text("No Documents Yet")
@@ -147,7 +147,7 @@ struct DocumentsSection: View {
             HStack(spacing: 12) {
                 Image(systemName: "doc.badge.plus")
                     .font(.system(size: 22))
-                    .foregroundStyle(Color.accentMuted)
+                    .foregroundStyle(Color.accentPrimary)
                     .frame(width: 28)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Document Storage")
@@ -161,7 +161,7 @@ struct DocumentsSection: View {
                 Spacer()
                 Image(systemName: "lock.fill")
                     .font(.caption)
-                    .foregroundStyle(Color.accentMuted)
+                    .foregroundStyle(Color.accentPrimary)
             }
             .padding(.vertical, 4)
         }

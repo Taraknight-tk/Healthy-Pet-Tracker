@@ -122,7 +122,7 @@ struct RemindersListView: View {
         VStack(spacing: 12) {
             Image(systemName: "bell.slash")
                 .font(.system(size: 28))
-                .foregroundStyle(Color.accentMuted)
+                .foregroundStyle(Color.textTertiary)
                 .accessibilityHidden(true)
 
             Text("No reminders yet")

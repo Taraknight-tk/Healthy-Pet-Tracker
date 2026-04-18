@@ -85,7 +85,7 @@ struct ContentView: View {
         VStack(spacing: 20) {
             Image(systemName: "pawprint.fill")
                 .font(.system(size: 60))
-                .foregroundStyle(Color.accentMuted)
+                .foregroundStyle(Color.textTertiary)
                 .accessibilityHidden(true)
             Text("No Pets Yet")
                 .font(.title2)
@@ -166,7 +166,7 @@ struct PetGridCard: View {
                     Text(latest.displayWeight)
                         .font(.subheadline)
                         .fontWeight(.semibold)
-                        .foregroundStyle(Color.accentActive)
+                        .foregroundStyle(Color.accentPrimary)
 
                     HStack(spacing: 4) {
                         Image(systemName: pet.weightTrend.icon)

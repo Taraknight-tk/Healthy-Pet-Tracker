@@ -175,7 +175,7 @@ struct WeightChartView: View {
                             Text(String(format: "%.1f", filteredAndConvertedData[0].weight))
                                 .font(.title)
                                 .fontWeight(.bold)
-                                .foregroundStyle(Color.accentActive)
+                                .foregroundStyle(Color.accentPrimary)
                             Text(unit.symbol)
                                 .font(.caption)
                                 .tertiaryText()
@@ -233,7 +233,7 @@ struct WeightChartView: View {
                                 x: .value("Date", dataPoint.date),
                                 y: .value("Weight", dataPoint.weight)
                             )
-                            .foregroundStyle(Color.accentActive)
+                            .foregroundStyle(Color.accentPrimary)
                             .symbolSize(60)
                             
                             AreaMark(
