@@ -14,16 +14,23 @@
 import SwiftUI
 import SwiftData
 
+/// Stable-identity wrapper for reminder sheet presentation.
+/// Defined at file scope (not private) so PetDetailView can own the sheet
+/// state and present it outside the List, avoiding UIKit's
+/// "already presenting" error that fires when .sheet is placed inside a List.
+struct ReminderSheet: Identifiable {
+    let id = UUID()
+    let reminder: PetReminder?   // nil → new reminder, non-nil → edit existing
+    init(editing reminder: PetReminder? = nil) { self.reminder = reminder }
+}
+
 struct RemindersListView: View {
     @Environment(\.modelContext) private var modelContext
     @Bindable var pet: Pet
 
-    // Single sheet state — avoids the SwiftUI bug where two .sheet modifiers
-    // on a Group with SwiftData @Model objects cause the sheet to immediately
-    // dismiss on the first tap. Using one Bool + one optional reference
-    // eliminates all identity-comparison issues.
-    @State private var showSheet = false
-    @State private var reminderToEdit: PetReminder?
+    /// Bound to PetDetailView's @State — the actual .sheet lives there,
+    /// outside the List, so UIKit only ever sees one presentation attempt.
+    @Binding var activeSheet: ReminderSheet?
 
     private var sortedReminders: [PetReminder] {
         pet.reminders.sorted { $0.createdAt < $1.createdAt }
@@ -47,8 +54,7 @@ struct RemindersListView: View {
                 ForEach(sortedReminders) { reminder in
                     HStack(spacing: 12) {
                         Button {
-                            reminderToEdit = reminder
-                            showSheet = true
+                            activeSheet = ReminderSheet(editing: reminder)
                         } label: {
                             HStack(spacing: 12) {
                                 Image(systemName: reminder.reminderType.icon)
@@ -106,8 +112,7 @@ struct RemindersListView: View {
                 }
 
                 Button {
-                    reminderToEdit = nil
-                    showSheet = true
+                    activeSheet = ReminderSheet()
                 } label: {
                     Label("Add Reminder", systemImage: "plus.circle.fill")
                         .font(.subheadline)
@@ -116,12 +121,9 @@ struct RemindersListView: View {
                 .tint(.accentInteractive)
             }
         }
-        // Single sheet for both add and edit. When reminderToEdit is nil,
-        // AddReminderView shows the "new reminder" form. When non-nil,
-        // it populates from the existing reminder for editing.
-        .sheet(isPresented: $showSheet, onDismiss: { reminderToEdit = nil }) {
-            AddReminderView(pet: pet, existingReminder: reminderToEdit)
-        }
+        // No .sheet here — presentation is owned by PetDetailView (outside the
+        // List) to prevent UIKit's "already presenting" error from multiple
+        // simultaneous presentation attempts within List cells.
     }
 
     // MARK: - Empty state
@@ -138,8 +140,7 @@ struct RemindersListView: View {
                 .secondaryText()
 
             Button {
-                reminderToEdit = nil
-                showSheet = true
+                activeSheet = ReminderSheet()
             } label: {
                 Label("Add Reminder", systemImage: "plus.circle.fill")
                     .font(.subheadline)
@@ -177,7 +178,7 @@ struct RemindersListView: View {
     let pet = Pet(name: "Hope", birthday: Date(), species: "Dog", initialWeight: 22, unit: .pounds)
     List {
         Section("Reminders") {
-            RemindersListView(pet: pet)
+            RemindersListView(pet: pet, activeSheet: .constant(nil))
         }
     }
     .modelContainer(for: Pet.self, inMemory: true)

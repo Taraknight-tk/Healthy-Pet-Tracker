@@ -56,6 +56,9 @@ struct PetDetailView: View {
     @State private var csvExport: CSVExportData?
     @State private var showingDeleteAlert = false
     @State private var showingUpgrade     = false
+    /// Reminder add/edit sheet — owned here (outside the List) so UIKit never
+    /// sees "already presenting" errors from sheet modifiers inside List cells.
+    @State private var reminderSheet: ReminderSheet?
 
     // Merged, newest-first timeline
     private var timelineItems: [TimelineItem] {
@@ -116,7 +119,7 @@ struct PetDetailView: View {
                     // Reminders (Pro)
                     Section("Reminders") {
                         if entitlements.hasPremium {
-                            RemindersListView(pet: pet)
+                            RemindersListView(pet: pet, activeSheet: $reminderSheet)
                         } else {
                             Button { showingUpgrade = true } label: {
                                 HStack(spacing: 12) {
@@ -246,6 +249,11 @@ struct PetDetailView: View {
             UpgradeView()
                 .environmentObject(EntitlementService.shared)
                 .environmentObject(StoreService.shared)
+        }
+        // Reminder sheet — presented here, outside the List, so there is only
+        // ever one UIKit presentation owner. Never put this inside RemindersListView.
+        .sheet(item: $reminderSheet) { sheet in
+            AddReminderView(pet: pet, existingReminder: sheet.reminder)
         }
         .alert("Delete \(pet.name)?", isPresented: $showingDeleteAlert) {
             Button("Cancel", role: .cancel) { }
