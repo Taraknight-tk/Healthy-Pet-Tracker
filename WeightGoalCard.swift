@@ -155,7 +155,8 @@ struct WeightGoalEditorView: View {
                             }
                         }
                         .pickerStyle(.segmented)
-                        .frame(width: 120)
+                        // No fixed width — lets the picker grow with Dynamic Type
+                        .fixedSize(horizontal: true, vertical: false)
                     }
                 }
                 .themedSection()

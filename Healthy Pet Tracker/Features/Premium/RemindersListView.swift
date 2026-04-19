@@ -75,19 +75,27 @@ struct RemindersListView: View {
 
                         Spacer()
 
-                        Toggle("", isOn: Binding(
+                        Toggle("Enable \(reminder.title)", isOn: Binding(
                             get: { reminder.isEnabled },
                             set: { _ in toggleReminder(reminder) }
                         ))
                         .labelsHidden()
                         .tint(.accentInteractive)
+                        // Hidden from the combined row element — the row's
+                        // accessibilityValue already communicates enabled/disabled state.
+                        // A custom action below lets VoiceOver users toggle without
+                        // navigating away from the row.
+                        .accessibilityHidden(true)
                     }
                     .padding(.vertical, 4)
                     .opacity(reminder.isEnabled ? 1.0 : 0.6)
                     .accessibilityElement(children: .combine)
                     .accessibilityLabel("\(reminder.title), \(reminder.scheduleDescription)")
                     .accessibilityValue(reminder.isEnabled ? "Enabled" : "Disabled")
-                    .accessibilityHint("Double-tap to edit, use toggle to enable or disable")
+                    .accessibilityHint("Double-tap to edit")
+                    .accessibilityAction(named: reminder.isEnabled ? "Disable reminder" : "Enable reminder") {
+                        toggleReminder(reminder)
+                    }
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button(role: .destructive) {
                             deleteReminder(reminder)

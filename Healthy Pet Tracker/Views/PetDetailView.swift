@@ -273,6 +273,22 @@ struct PetDetailView: View {
     }
 }
 
+// MARK: - Conditional accessibility action helper
+
+private extension View {
+    /// Adds a named VoiceOver rotor action only when `condition` is true.
+    /// Use this to surface actions that are only relevant in certain states
+    /// without polluting the rotor when they don't apply.
+    @ViewBuilder
+    func accessibilityActionIf(_ condition: Bool, named name: String, action: @escaping () -> Void) -> some View {
+        if condition {
+            self.accessibilityAction(named: name, action)
+        } else {
+            self
+        }
+    }
+}
+
 // MARK: - Pet Note Row
 
 struct PetNoteRow: View {
@@ -325,6 +341,9 @@ struct PetNoteRow: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(rowAccessibilityLabel)
         .accessibilityHint("Double-tap to edit")
+        .accessibilityActionIf(note.photoPath != nil, named: "View photo") {
+            showingPhoto = true
+        }
         .fullScreenCover(isPresented: $showingPhoto) {
             if let path = note.photoPath {
                 PhotoFullScreenView(imagePath: path)
@@ -417,6 +436,7 @@ struct PetInfoCard: View {
                                 .font(.caption)
                                 .fontWeight(.medium)
                                 .tint(.accentInteractive)
+                                .frame(minWidth: 44, minHeight: 44)
                         }
                     } else {
                         HStack(spacing: 5) {
@@ -570,6 +590,9 @@ struct WeightEntryRow: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(rowAccessibilityLabel)
         .accessibilityHint("Double-tap to edit")
+        .accessibilityActionIf(entry.photoPath != nil, named: "View photo") {
+            showingPhoto = true
+        }
         .fullScreenCover(isPresented: $showingPhoto) {
             if let path = entry.photoPath {
                 PhotoFullScreenView(imagePath: path)

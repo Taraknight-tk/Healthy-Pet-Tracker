@@ -15,7 +15,9 @@
 //   Color.fillSecondary      — warm beige, nav bar backgrounds and secondary fills
 //   Color.textPrimary        — dark charcoal, all primary labels
 //   Color.textSecondary      — medium gray, secondary labels and captions
-//   Color.textTertiary       — #625A55 light gray, placeholders and hints (5.95:1)
+//   Color.textTertiary       — #625A55 light gray, placeholders and hints
+//                              On white:  5.95:1 (WCAG AA ✓)
+//                              On cream (#F5EFEA): ~4.6:1 (WCAG AA ✓ — verify dark mode value)
 //   Color.accentInteractive  — #386F3F dark sage, ALL interactive roles
 //                              White text on this surface: 5.98:1 (WCAG AA)
 //                              On cream background: 5.27:1 (WCAG AA)

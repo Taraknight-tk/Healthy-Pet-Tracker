@@ -33,7 +33,18 @@ struct WeightChartView: View {
             case .oneYear: return "1Y"
             }
         }
-        
+
+        /// Full spoken label for VoiceOver — avoids "one M", "three M" literal readings.
+        var accessibilityTitle: String {
+            switch self {
+            case .all:          return "All time"
+            case .oneMonth:     return "One month"
+            case .threeMonths:  return "Three months"
+            case .sixMonths:    return "Six months"
+            case .oneYear:      return "One year"
+            }
+        }
+
         func startDate(from reference: Date) -> Date? {
             switch self {
             case .all:
@@ -153,7 +164,9 @@ struct WeightChartView: View {
         VStack(alignment: .leading, spacing: 8) {
             Picker("Range", selection: $selectedRange) {
                 ForEach(DateRange.allCases) { range in
-                    Text(range.title).tag(range)
+                    Text(range.title)
+                        .tag(range)
+                        .accessibilityLabel(range.accessibilityTitle)
                 }
             }
             .pickerStyle(.segmented)

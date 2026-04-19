@@ -163,6 +163,7 @@ private struct BreedRangeCard: View {
             if let status {
                 HStack(spacing: 6) {
                     Image(systemName: status.sfSymbol)
+                        .accessibilityHidden(true)
                     Text(status.label)
                         .font(.caption).fontWeight(.medium)
                 }
@@ -204,48 +205,65 @@ private struct WeightRangeBar: View {
     }
 
     var body: some View {
-        GeometryReader { geo in
-            let w = geo.size.width
+        VStack(spacing: 4) {
+            GeometryReader { geo in
+                let w = geo.size.width
 
-            ZStack(alignment: .leading) {
-                // Background track
-                Capsule()
-                    .fill(Color.secondary.opacity(0.15))
-                    .frame(height: 8)
+                ZStack(alignment: .leading) {
+                    // Background track
+                    Capsule()
+                        .fill(Color.secondary.opacity(0.15))
+                        .frame(height: 8)
 
-                // Healthy range highlight
-                let startX = fraction(for: range.minLbs) * w
-                let endX   = fraction(for: range.maxLbs) * w
-                Capsule()
-                    .fill(Color.accentActive.opacity(0.35))
-                    .frame(width: max(0, endX - startX), height: 8)
-                    .offset(x: startX)
+                    // Healthy range highlight
+                    let startX = fraction(for: range.minLbs) * w
+                    let endX   = fraction(for: range.maxLbs) * w
+                    Capsule()
+                        .fill(Color.accentActive.opacity(0.35))
+                        .frame(width: max(0, endX - startX), height: 8)
+                        .offset(x: startX)
 
-                // Current weight marker
-                if let lbs = currentLbs {
-                    let markerX = fraction(for: lbs) * w
-                    Circle()
-                        .fill(markerColor(lbs: lbs))
-                        .frame(width: 14, height: 14)
-                        .offset(x: markerX - 7, y: 0)
-                        .shadow(radius: 1)
+                    // Current weight marker
+                    if let lbs = currentLbs {
+                        let markerX = fraction(for: lbs) * w
+                        Circle()
+                            .fill(markerColor(lbs: lbs))
+                            .frame(width: 14, height: 14)
+                            .offset(x: markerX - 7, y: 0)
+                            .shadow(radius: 1)
+                    }
                 }
+                .frame(height: 14)
             }
             .frame(height: 14)
-        }
-        .frame(height: 14)
 
-        // Labels below bar
-        HStack {
-            Text("\(Int(range.minLbs)) lbs")
-                .font(.caption2).foregroundStyle(.secondary)
-            Spacer()
-            Text("Healthy range")
-                .font(.caption2).foregroundStyle(.tint)
-            Spacer()
-            Text("\(Int(range.maxLbs)) lbs")
-                .font(.caption2).foregroundStyle(.secondary)
+            // Labels below bar
+            HStack {
+                Text("\(Int(range.minLbs)) lbs")
+                    .font(.caption2).foregroundStyle(.secondary)
+                Spacer()
+                Text("Healthy range")
+                    .font(.caption2).foregroundStyle(.tint)
+                Spacer()
+                Text("\(Int(range.maxLbs)) lbs")
+                    .font(.caption2).foregroundStyle(.secondary)
+            }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Weight range indicator")
+        .accessibilityValue(accessibilityDescription)
+    }
+
+    private var accessibilityDescription: String {
+        let rangeText = "Healthy range: \(Int(range.minLbs)) to \(Int(range.maxLbs)) pounds"
+        guard let lbs = currentLbs else { return rangeText + ". Current weight unknown." }
+        let statusText: String
+        switch range.status(forWeightLbs: lbs) {
+        case .healthy:     statusText = "Status: In healthy range."
+        case .underweight: statusText = "Status: Below healthy range."
+        case .overweight:  statusText = "Status: Above healthy range."
+        }
+        return "\(rangeText). Current weight \(String(format: "%.1f", lbs)) pounds. \(statusText)"
     }
 
     private func markerColor(lbs: Double) -> Color {

@@ -46,7 +46,7 @@ struct PhotoFullScreenView: View {
                             }
                     )
                     .accessibilityLabel("Weight entry photo")
-                    .accessibilityHint("Drag down or tap X to close")
+                    .accessibilityHint("Tap X to close")
             }
 
             // Close button

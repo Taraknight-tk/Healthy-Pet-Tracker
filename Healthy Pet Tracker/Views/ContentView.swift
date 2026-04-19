@@ -196,7 +196,8 @@ struct PetGridCard: View {
         // Accessibility: reads as a single summary instead of fragments
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(cardAccessibilityLabel)
-        .accessibilityHint("Double-tap to view details")
+        // Note: no .accessibilityHint — iOS automatically announces
+        // "Double-tap to activate" for NavigationLink destinations.
     }
 
     // MARK: - Photo area

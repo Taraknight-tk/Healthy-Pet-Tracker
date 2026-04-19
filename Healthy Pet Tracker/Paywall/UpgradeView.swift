@@ -143,7 +143,9 @@ struct UpgradeView: View {
                 } label: {
                     Group {
                         if isPurchasing {
-                            ProgressView().tint(.white)
+                            ProgressView()
+                                .tint(.white)
+                                .accessibilityLabel("Purchase in progress")
                         } else {
                             Text("Unlock Pro — \(product.displayPrice)")
                                 .font(.headline)
@@ -182,6 +184,7 @@ struct UpgradeView: View {
                 HStack(spacing: 10) {
                     ProgressView()
                         .tint(.white)
+                        .accessibilityLabel("Loading pricing information")
                     Text("Loading…")
                         .font(.headline)
                         .foregroundStyle(.white)

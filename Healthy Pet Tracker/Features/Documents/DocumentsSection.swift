@@ -51,6 +51,9 @@ struct DocumentsSection: View {
                     documentRow(doc)
                         .contentShape(Rectangle())
                         .onTapGesture { previewURL = URL(fileURLWithPath: doc.filePath) }
+                        // VoiceOver does not activate .onTapGesture via double-tap in a List;
+                        // .accessibilityAction(.default) gives VoiceOver the same open action.
+                        .accessibilityAction(.default) { previewURL = URL(fileURLWithPath: doc.filePath) }
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             Button(role: .destructive) { deleteDocument(doc) } label: {
                                 Label("Delete", systemImage: "trash")
