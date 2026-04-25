@@ -205,7 +205,7 @@ struct PetGridCard: View {
     @ViewBuilder
     private var photoArea: some View {
         if let path = pet.photoPath,
-           let uiImage = UIImage(contentsOfFile: path) {
+           let uiImage = PhotoStorage.loadImage(at: path) {
             // Pro user with photo set
             Image(uiImage: uiImage)
                 .resizable()

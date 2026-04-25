@@ -108,7 +108,7 @@ struct PetPhotoView: View {
     @ViewBuilder
     private var photoCircle: some View {
         if let path = pet.photoPath,
-           let uiImage = UIImage(contentsOfFile: path) {
+           let uiImage = PhotoStorage.loadImage(at: path) {
             Image(uiImage: uiImage)
                 .resizable()
                 .scaledToFill()
@@ -168,16 +168,17 @@ struct PetPhotoView: View {
         let resized = downscaled(image, maxDimension: 400)
         guard let jpegData = resized.jpegData(compressionQuality: 0.8) else { return }
 
-        let documents = FileManager.default
-            .urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let photosDir = documents.appendingPathComponent("pet_photos", isDirectory: true)
-        try? FileManager.default.createDirectory(at: photosDir, withIntermediateDirectories: true)
-
-        let fileURL = photosDir.appendingPathComponent("pet_\(pet.id.uuidString).jpg")
-        try? jpegData.write(to: fileURL)
+        // Persist the path relative to Documents/ so it survives container UUID
+        // changes across app updates. See PhotoStorage.swift.
+        let relativePath = PhotoStorage.saveJPEG(
+            jpegData,
+            subdirectory: PhotoStorage.petPhotosDir,
+            filename: "pet_\(pet.id.uuidString).jpg"
+        )
+        guard let relativePath else { return }
 
         await MainActor.run {
-            pet.photoPath = fileURL.path
+            pet.photoPath = relativePath
         }
     }
 

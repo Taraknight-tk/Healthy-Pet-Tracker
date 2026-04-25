@@ -20,7 +20,7 @@ struct PhotoFullScreenView: View {
             Color.black
                 .ignoresSafeArea()
 
-            if let uiImage = UIImage(contentsOfFile: imagePath) {
+            if let uiImage = PhotoStorage.loadImage(at: imagePath) {
                 Image(uiImage: uiImage)
                     .resizable()
                     .scaledToFit()

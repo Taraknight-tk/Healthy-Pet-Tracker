@@ -116,7 +116,7 @@ struct WeightEntryPhotoView: View {
 
     @ViewBuilder
     private var photoArea: some View {
-        if let path = photoPath, let uiImage = UIImage(contentsOfFile: path) {
+        if let path = photoPath, let uiImage = PhotoStorage.loadImage(at: path) {
             Image(uiImage: uiImage)
                 .resizable()
                 .scaledToFill()
@@ -182,20 +182,22 @@ struct WeightEntryPhotoView: View {
         let resized = downscaled(image, maxDimension: 600)
         guard let jpegData = resized.jpegData(compressionQuality: 0.8) else { return }
 
-        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let dir = docs.appendingPathComponent("entry_photos", isDirectory: true)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-
-        // Remove previous file before writing a new one
+        // Remove previous file (resolves through PhotoStorage so legacy
+        // absolute paths still resolve to the current container).
         if let oldPath = photoPath {
-            try? FileManager.default.removeItem(atPath: oldPath)
+            PhotoStorage.delete(oldPath)
         }
 
-        let fileURL = dir.appendingPathComponent("entry_\(UUID().uuidString).jpg")
-        try? jpegData.write(to: fileURL)
+        // Persist the path relative to Documents/ — see PhotoStorage.swift.
+        let relativePath = PhotoStorage.saveJPEG(
+            jpegData,
+            subdirectory: PhotoStorage.entryPhotosDir,
+            filename: "entry_\(UUID().uuidString).jpg"
+        )
+        guard let relativePath else { return }
 
         await MainActor.run {
-            photoPath = fileURL.path
+            photoPath = relativePath
         }
     }
 

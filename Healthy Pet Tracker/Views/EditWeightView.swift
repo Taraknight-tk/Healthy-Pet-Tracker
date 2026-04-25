@@ -145,9 +145,10 @@ struct EditWeightView: View {
     }
 
     private func deleteEntry() {
-        // Clean up photo file from disk before deleting the entry
+        // Clean up photo file from disk before deleting the entry. Routed
+        // through PhotoStorage so legacy absolute paths still resolve.
         if let path = entry.photoPath {
-            try? FileManager.default.removeItem(atPath: path)
+            PhotoStorage.delete(path)
         }
         modelContext.delete(entry)
         HapticManager.shared.notification(.success)
@@ -156,7 +157,7 @@ struct EditWeightView: View {
 
     private func removePhoto() {
         if let path = entry.photoPath {
-            try? FileManager.default.removeItem(atPath: path)
+            PhotoStorage.delete(path)
         }
         entry.photoPath = nil
         HapticManager.shared.impact(.light)

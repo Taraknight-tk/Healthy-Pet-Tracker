@@ -22,9 +22,14 @@ struct DocumentsSection: View {
     @EnvironmentObject var entitlements: EntitlementService
     @Bindable var pet: Pet
 
+    /// Bound to PetDetailView's @State — the actual .fullScreenCover lives
+    /// there, outside the List, so UIKit only ever sees one presentation
+    /// attempt. Putting it inside this view caused a present/dismiss flicker
+    /// because the List cell's tap handling competed with the cover.
+    @Binding var previewURL: URL?
+
     @State private var showingFilePicker = false
     @State private var showingUpgrade    = false
-    @State private var previewURL: URL?
     @State private var importError: String?
     @State private var showingImportError = false
 
@@ -50,10 +55,10 @@ struct DocumentsSection: View {
                 ForEach(sortedDocs) { doc in
                     documentRow(doc)
                         .contentShape(Rectangle())
-                        .onTapGesture { previewURL = URL(fileURLWithPath: doc.filePath) }
+                        .onTapGesture { previewURL = PhotoStorage.absoluteURL(for: doc.filePath) }
                         // VoiceOver does not activate .onTapGesture via double-tap in a List;
                         // .accessibilityAction(.default) gives VoiceOver the same open action.
-                        .accessibilityAction(.default) { previewURL = URL(fileURLWithPath: doc.filePath) }
+                        .accessibilityAction(.default) { previewURL = PhotoStorage.absoluteURL(for: doc.filePath) }
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             Button(role: .destructive) { deleteDocument(doc) } label: {
                                 Label("Delete", systemImage: "trash")
@@ -76,11 +81,9 @@ struct DocumentsSection: View {
         ) { result in
             handleImport(result)
         }
-        // ── Quick Look viewer ────────────────────────────────────────────
-        .fullScreenCover(item: $previewURL) { url in
-            QuickLookView(fileURL: url) { previewURL = nil }
-                .ignoresSafeArea()
-        }
+        // No .fullScreenCover here — Quick Look presentation is owned by
+        // PetDetailView (outside the List) to avoid the present-then-dismiss
+        // flicker UIKit produces when a cover is attached inside List cells.
         // ── Import error ─────────────────────────────────────────────────
         .alert("Couldn't Import File", isPresented: $showingImportError) {
             Button("OK", role: .cancel) { }
@@ -210,10 +213,14 @@ struct DocumentsSection: View {
                 let ext      = sourceURL.pathExtension.lowercased()
                 let fileType: DocFileType = (ext == "pdf") ? .pdf : .image
 
+                // Persist a Documents/-relative path so it survives container
+                // UUID changes across app updates. See PhotoStorage.swift.
+                let relativePath = "pet_docs/\(pet.id.uuidString)/\(sourceURL.lastPathComponent)"
+
                 // Save record
                 let document = PetDocument(
                     title:    sourceURL.deletingPathExtension().lastPathComponent,
-                    filePath: destURL.path,
+                    filePath: relativePath,
                     fileType: fileType
                 )
                 document.pet = pet
@@ -230,8 +237,9 @@ struct DocumentsSection: View {
     // MARK: - Delete
 
     private func deleteDocument(_ doc: PetDocument) {
-        // Remove the file from disk first
-        try? FileManager.default.removeItem(atPath: doc.filePath)
+        // Remove the file from disk first. Routed through PhotoStorage so
+        // legacy absolute paths from older app versions still resolve.
+        PhotoStorage.delete(doc.filePath)
         modelContext.delete(doc)
         HapticManager.shared.notification(.success)
     }

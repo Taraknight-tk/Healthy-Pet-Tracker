@@ -60,6 +60,12 @@ struct PetDetailView: View {
     /// sees "already presenting" errors from sheet modifiers inside List cells.
     @State private var reminderSheet: ReminderSheet?
 
+    /// Document Quick Look cover — owned here for the same reason as
+    /// `reminderSheet`. When `.fullScreenCover` lived inside `DocumentsSection`,
+    /// tapping a row caused a present/dismiss flicker because the List cell's
+    /// own tap handling competed with UIKit's presentation.
+    @State private var documentPreviewURL: URL?
+
     // Merged, newest-first timeline
     private var timelineItems: [TimelineItem] {
         let weights = pet.sortedWeightEntries.map { TimelineItem.weight($0) }
@@ -179,7 +185,7 @@ struct PetDetailView: View {
 
                 // ── Documents (Pro) ───────────────────────────────────────
                 Section("Documents") {
-                    DocumentsSection(pet: pet)
+                    DocumentsSection(pet: pet, previewURL: $documentPreviewURL)
                 }
                 .themedSection()
             }
@@ -254,6 +260,12 @@ struct PetDetailView: View {
         // ever one UIKit presentation owner. Never put this inside RemindersListView.
         .sheet(item: $reminderSheet) { sheet in
             AddReminderView(pet: pet, existingReminder: sheet.reminder)
+        }
+        // Document Quick Look — same hoisted-presentation pattern as the
+        // reminder sheet. Never put this inside DocumentsSection.
+        .fullScreenCover(item: $documentPreviewURL) { url in
+            QuickLookView(fileURL: url) { documentPreviewURL = nil }
+                .ignoresSafeArea()
         }
         .alert("Delete \(pet.name)?", isPresented: $showingDeleteAlert) {
             Button("Cancel", role: .cancel) { }
@@ -337,7 +349,7 @@ struct PetNoteRow: View {
             Spacer()
 
             // Photo thumbnail
-            if let path = note.photoPath, UIImage(contentsOfFile: path) != nil {
+            if let path = note.photoPath, PhotoStorage.fileExists(at: path) {
                 Button { showingPhoto = true } label: {
                     EntryThumbnailView(path: path)
                 }
@@ -567,7 +579,7 @@ struct WeightEntryRow: View {
         HStack(spacing: 10) {
 
             // Thumbnail — only rendered when a photo exists
-            if let path = entry.photoPath, UIImage(contentsOfFile: path) != nil {
+            if let path = entry.photoPath, PhotoStorage.fileExists(at: path) {
                 Button { showingPhoto = true } label: {
                     EntryThumbnailView(path: path)
                 }
@@ -622,7 +634,7 @@ struct EntryThumbnailView: View {
     let path: String
 
     var body: some View {
-        if let uiImage = UIImage(contentsOfFile: path) {
+        if let uiImage = PhotoStorage.loadImage(at: path) {
             Image(uiImage: uiImage)
                 .resizable()
                 .scaledToFill()
